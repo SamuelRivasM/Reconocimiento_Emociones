@@ -81,6 +81,8 @@ export default function App() {
   const [changingPassword, setChangingPassword] = useState(false);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [newReview, setNewReview] = useState({ rating: 5, comment: '' });
+  const [showMovieForm, setShowMovieForm] = useState(false);
+  const [movieForm, setMovieForm] = useState({nombre: "",genero: "",anio: "",duracion: "",director: "",cast: "",descripcion: "",imagen: ""});
 
   // Emotion Detection State
   const [showEmotionConsent, setShowEmotionConsent] = useState(false);
@@ -144,50 +146,113 @@ export default function App() {
     );
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (loginForm.email && loginForm.password) {
+
+    try {
+
+      const res = await fetch("http://localhost:3001/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          correo: loginForm.email,
+          password: loginForm.password
+        })
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        alert(data.message);
+        return;
+      }
+
       const profile: UserProfile = {
-        id: 1,
-        name: loginForm.email.split('@')[0],
-        email: loginForm.email,
-        joinDate: '2026-01-15',
+        id: data.usuario.id,
+        name: data.usuario.nombre_usuario,
+        email: data.usuario.correo,
+        joinDate: new Date().toISOString().split("T")[0],
         emotionAnalysisEnabled: false
       };
+
       setUser(profile.name);
       setUserProfile(profile);
-      setEditProfileForm({ name: profile.name, email: profile.email });
-      setLoginForm({ email: '', password: '' });
-      setAppState('app');
+
+      localStorage.setItem(
+        "usuario",
+        JSON.stringify(profile)
+      );
+
+      setEditProfileForm({
+        name: profile.name,
+        email: profile.email
+      });
+
+      setLoginForm({
+        email: "",
+        password: ""
+      });
+
+      setAppState("app");
+
+    } catch (error) {
+      console.error(error);
+      alert("Error al iniciar sesión");
     }
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (registerForm.name && registerForm.email && registerForm.password) {
-      const profile: UserProfile = {
-        id: Date.now(),
-        name: registerForm.name,
-        email: registerForm.email,
-        joinDate: new Date().toISOString().split('T')[0],
-        emotionAnalysisEnabled: false
-      };
-      setUser(profile.name);
-      setUserProfile(profile);
-      setEditProfileForm({ name: profile.name, email: profile.email });
-      setRegisterForm({ name: '', email: '', password: '' });
-      setShowOnboarding(true);
-      setOnboardingStep(0);
-      setAppState('app');
+
+    try {
+
+      const res = await fetch("http://localhost:3001/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          nombre_usuario: registerForm.name,
+          correo: registerForm.email,
+          password: registerForm.password
+        })
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        alert(data.error || data.message);
+        return;
+      }
+
+      alert("Usuario registrado correctamente");
+
+      setRegisterForm({
+        name: "",
+        email: "",
+        password: ""
+      });
+
+      setAppState("auth-login");
+
+    } catch (error) {
+      console.error(error);
+      alert("Error al registrar usuario");
     }
   };
 
   const handleLogout = () => {
+
+    localStorage.removeItem("usuario");
+
     setUser(null);
     setUserProfile(null);
     setMyList([]);
-    setCurrentView('explore');
-    setAppState('landing');
+    setCurrentView("explore");
+    setAppState("landing");
+
   };
 
   const handleEditProfile = (e: React.FormEvent) => {
@@ -507,6 +572,74 @@ export default function App() {
     if (movieReviews.length === 0) return 0;
     const sum = movieReviews.reduce((acc, review) => acc + review.rating, 0);
     return (sum / movieReviews.length).toFixed(1);
+  };
+
+  useEffect(() => {
+
+    const usuarioGuardado =
+      localStorage.getItem("usuario");
+
+    if (usuarioGuardado) {
+
+      const profile =
+        JSON.parse(usuarioGuardado);
+
+      setUser(profile.name);
+      setUserProfile(profile);
+
+      setEditProfileForm({
+        name: profile.name,
+        email: profile.email
+      });
+
+      setAppState("app");
+    }
+
+  }, []);
+
+  //pa poner pelis
+  const handleAddMovie = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+
+      const res = await fetch("http://localhost:3001/movies", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(movieForm)
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+
+        alert("Película registrada");
+
+        const moviesRes = await fetch("http://localhost:3001/movies");
+        const moviesData = await moviesRes.json();
+
+        setMovies(moviesData);
+
+        setMovieForm({
+          nombre: "",
+          genero: "",
+          anio: "",
+          duracion: "",
+          director: "",
+          cast: "",
+          descripcion: "",
+          imagen: ""
+        });
+
+        setShowMovieForm(false);
+      }
+
+    } catch (error) {
+      console.error(error);
+      alert("Error al registrar película");
+    }
   };
 
   // Landing Page
@@ -1057,6 +1190,147 @@ export default function App() {
           </div>
         </div>
       )}
+      
+      {/* poner pelis */}
+      {showMovieForm && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+
+          <form
+            onSubmit={handleAddMovie}
+            className="bg-zinc-900 p-6 rounded-xl w-full max-w-2xl space-y-4"
+          >
+
+            <h2 className="text-2xl font-bold">
+              Registrar Película
+            </h2>
+
+            <input
+              type="text"
+              placeholder="Nombre"
+              value={movieForm.nombre}
+              onChange={(e) =>
+                setMovieForm({
+                  ...movieForm,
+                  nombre: e.target.value
+                })
+              }
+              className="w-full p-3 bg-zinc-800 rounded"
+              required
+            />
+
+            <input
+              type="text"
+              placeholder="Género"
+              value={movieForm.genero}
+              onChange={(e) =>
+                setMovieForm({
+                  ...movieForm,
+                  genero: e.target.value
+                })
+              }
+              className="w-full p-3 bg-zinc-800 rounded"
+            />
+
+            <input
+              type="number"
+              placeholder="Año"
+              value={movieForm.anio}
+              onChange={(e) =>
+                setMovieForm({
+                  ...movieForm,
+                  anio: e.target.value
+                })
+              }
+              className="w-full p-3 bg-zinc-800 rounded"
+            />
+
+            <input
+              type="text"
+              placeholder="Duración (2h 15min)"
+              value={movieForm.duracion}
+              onChange={(e) =>
+                setMovieForm({
+                  ...movieForm,
+                  duracion: e.target.value
+                })
+              }
+              className="w-full p-3 bg-zinc-800 rounded"
+            />
+
+            <input
+              type="text"
+              placeholder="Director"
+              value={movieForm.director}
+              onChange={(e) =>
+                setMovieForm({
+                  ...movieForm,
+                  director: e.target.value
+                })
+              }
+              className="w-full p-3 bg-zinc-800 rounded"
+            />
+
+            <input
+              type="text"
+              placeholder="Reparto separado por comas"
+              value={movieForm.cast}
+              onChange={(e) =>
+                setMovieForm({
+                  ...movieForm,
+                  cast: e.target.value
+                })
+              }
+              className="w-full p-3 bg-zinc-800 rounded"
+            />
+
+            <textarea
+              placeholder="Descripción"
+              value={movieForm.descripcion}
+              onChange={(e) =>
+                setMovieForm({
+                  ...movieForm,
+                  descripcion: e.target.value
+                })
+              }
+              className="w-full p-3 bg-zinc-800 rounded"
+            />
+
+            <input
+              type="text"
+              placeholder="/pelis/imagen.jpg"
+              value={movieForm.imagen}
+              onChange={(e) =>
+                setMovieForm({
+                  ...movieForm,
+                  imagen: e.target.value
+                })
+              }
+              className="w-full p-3 bg-zinc-800 rounded"
+            />
+
+            <div className="flex gap-3">
+
+              <button
+                type="submit"
+                className="bg-green-600 px-4 py-2 rounded-lg"
+              >
+                Guardar
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowMovieForm(false)}
+                className="bg-red-600 px-4 py-2 rounded-lg"
+              >
+                Cancelar
+              </button>
+
+            </div>
+
+          </form>
+
+        </div>
+      )}
 
       {/* Movie Detail Modal */}
       {selectedMovie && (
@@ -1391,6 +1665,12 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowMovieForm(true)}
+                className="px-4 py-2 bg-green-600 rounded-lg hover:bg-green-700"
+              >
+                + Agregar Película
+              </button>
               <button
                 onClick={() => setCurrentView('mylist')}
                 className={`px-4 py-2 rounded-lg transition flex items-center gap-2 ${
