@@ -16,7 +16,8 @@ interface Movie {
 
 interface Review {
   id: number;
-  movieId: number;
+  usuario_id: number;
+  pelicula_id: number;
   userName: string;
   rating: number;
   comment: string;
@@ -24,9 +25,9 @@ interface Review {
 }
 
 interface UserProfile {
+  id: number;
   name: string;
   email: string;
-  password: string;
   joinDate: string;
   emotionAnalysisEnabled: boolean;
 }
@@ -78,11 +79,7 @@ export default function App() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [editingProfile, setEditingProfile] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
-  const [reviews, setReviews] = useState<Review[]>([
-    { id: 1, movieId: 1, userName: 'Ana García', rating: 5, comment: '¡Increíble película! La cinematografía es espectacular.', date: '2026-05-01' },
-    { id: 2, movieId: 1, userName: 'Carlos Ruiz', rating: 4, comment: 'Muy buena, aunque el final fue algo predecible.', date: '2026-05-03' },
-    { id: 3, movieId: 3, userName: 'María López', rating: 5, comment: 'Me mantuvo al borde del asiento todo el tiempo.', date: '2026-05-05' },
-  ]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [newReview, setNewReview] = useState({ rating: 5, comment: '' });
 
   // Emotion Detection State
@@ -97,164 +94,41 @@ export default function App() {
   const [watchingMovie, setWatchingMovie] = useState(false);
   const [playbackProgress, setPlaybackProgress] = useState(0);
   const sessionStartTimeRef = useRef<number>(0);
+  const [movies, setMovies] = useState<Movie[]>([]);
+  const [recommendations, setRecommendations] = useState<Movie[]>([]);
+  useEffect(() => {
+  fetch("http://localhost:3001/movies")
+    .then(res => res.json())
+    .then(data => {
 
-  const mockMovies: Movie[] = [
-    {
-      id: 1,
-      title: 'Noches de Neón',
-      genre: 'Ciencia Ficción',
-      rating: 4.5,
-      year: 2025,
-      duration: '2h 18min',
-      director: 'Sofia Chen',
-      cast: ['Alex Rivera', 'Maya Patel', 'James Park'],
-      description: 'En un futuro distópico, un hacker solitario descubre un complot que amenaza con destruir la última ciudad libre del planeta. Una aventura visual impresionante que explora los límites de la tecnología y la humanidad.'
-      ,image:"/pelis/NocheNeon.jpg"
-    },
-    {
-      id: 2,
-      title: 'El Último Viaje',
-      genre: 'Aventura',
-      rating: 4.2,
-      year: 2024,
-      duration: '2h 5min',
-      director: 'Marco Delgado',
-      cast: ['Elena Torres', 'David Kim', 'Sara Mendoza'],
-      description: 'Un grupo de exploradores se embarca en una expedición para encontrar una civilización perdida en la selva amazónica. Lo que descubren cambiará la historia para siempre.'
-      ,image:"/pelis/UltimoViaje.jpg"
-    },
-    {
-      id: 3,
-      title: 'Shutter Island',
-      genre: 'Suspenso',
-      rating: 4.9,
-      year: 2010,
-      duration: '2h 18min',
-      director: 'Martin Scorsese',
-      cast: ['Leonardo DiCaprio', 'Mark Ruffalo', 'Ben Kingsley'],
-      description: 'Un agente federal investiga la desaparición de una paciente en un hospital psiquiátrico ubicado en una isla remota, descubriendo secretos inquietantes que desafían su propia percepción de la realidad.',
-      image: '/pelis/ShutterIsland.jpg'
-    },
-    {
-      id: 4,
-      title: 'La La Land',
-      genre: 'Romance',
-      rating: 4.8,
-      year: 2016,
-      duration: '2h 8min',
-      director: 'Damien Chazelle',
-      cast: ['Ryan Gosling', 'Emma Stone', 'John Legend'],
-      description: 'Una aspirante a actriz y un apasionado músico de jazz se enamoran mientras persiguen sus sueños en Los Ángeles. Su relación se pone a prueba cuando el éxito comienza a cambiar el rumbo de sus vidas.'
-      ,image:"/pelis/NocheNeon.jpg"
-    },
-    {
-      id: 5,
-      title: 'Horizontes Oscuros',
-      genre: 'Terror',
-      rating: 4.1,
-      year: 2026,
-      duration: '1h 52min',
-      director: 'Thomas Grave',
-      cast: ['Emma Dark', 'Ryan Hunt', 'Sophie Moon'],
-      description: 'Una familia se muda a una casa antigua en el campo, pero pronto descubren que no están solos. Una experiencia aterradora que desafía los límites del género.'
-      ,image:"/pelis/HorizonteOscuro.jpg"
-    },
-    {
-      id: 6,
-      title: 'Odisea Espacial',
-      genre: 'Ciencia Ficción',
-      rating: 4.6,
-      year: 2025,
-      duration: '2h 30min',
-      director: 'Ivan Cosmos',
-      cast: ['Nathan Star', 'Zoe Luna', 'Marcus Nova'],
-      description: 'La humanidad envía su primera misión tripulada más allá del sistema solar. Un viaje épico que explora lo que significa ser humano en la inmensidad del universo.'
-      ,image:"/pelis/OdiseaEspacial.jpg"
-    },
-    {
-      id: 7,
-      title: 'Top Gun: Maverick',
-      genre: 'Acción',
-      rating: 4.8,
-      year: 2022,
-      duration: '2h 11min',
-      director: 'Joseph Kosinski',
-      cast: ['Tom Cruise', 'Miles Teller', 'Jennifer Connelly'],
-      description: 'Después de más de treinta años de servicio, Pete "Maverick" Mitchell regresa para entrenar a una nueva generación de pilotos de élite en una misión extremadamente peligrosa.'
-      ,image: '/pelis/topgun.jpg'
-    },
-    {
-      id: 8,
-      title: 'Oppenheimer',
-      genre: 'Drama',
-      rating: 4.9,
-      year: 2023,
-      duration: '3h 0min',
-      director: 'Christopher Nolan',
-      cast: ['Cillian Murphy', 'Emily Blunt', 'Matt Damon'],
-      description: 'La historia de J. Robert Oppenheimer y el desarrollo del Proyecto Manhattan, explorando los desafíos científicos, éticos y personales detrás de la creación de la bomba atómica.',
-      image: '/pelis/oppenheimer.jpg'
-    },
-  ];
+      const peliculas: Movie[] = data.map((m: any) => ({
+        id: m.id,
+        title: m.title,
+        genre: m.genre,
+        rating: m.rating || 0,
+        year: m.year,
+        duration: m.duration,
+        director: m.director,
+        cast: m.cast || [],
+        description: m.description,
+        image: m.image
+      }));
 
-  const recommendations: Movie[] = [
-    {
-      id: 9,
-      title: 'The Dark Knight',
-      genre: 'Acción',
-      rating: 4.9,
-      year: 2008,
-      duration: '2h 32min',
-      director: 'Christopher Nolan',
-      cast: ['Christian Bale', 'Heath Ledger', 'Aaron Eckhart'],
-      description: 'Batman enfrenta al Joker, un criminal impredecible que busca sumir Gotham en el caos. Considerada una de las mejores películas de superhéroes de todos los tiempos.',
-      image: '/pelis/Batman.jpg'
-    },
-    {
-      id: 10,
-      title: 'Inception',
-      genre: 'Ciencia Ficción',
-      rating: 4.8,
-      year: 2010,
-      duration: '2h 28min',
-      director: 'Christopher Nolan',
-      cast: ['Leonardo DiCaprio', 'Joseph Gordon-Levitt', 'Elliot Page'],
-      description: 'Un experto en infiltrarse en los sueños recibe la misión de implantar una idea en la mente de una persona, enfrentando peligros que desafían la realidad.',
-      image: '/pelis/inception.jpg'
-    },
-    {
-      id: 11,
-      title: 'Avatar',
-      genre: 'Aventura',
-      rating: 4.6,
-      year: 2009,
-      duration: '2h 42min',
-      director: 'James Cameron',
-      cast: ['Sam Worthington', 'Zoe Saldaña', 'Sigourney Weaver'],
-      description: 'Un exmarine viaja al planeta Pandora, donde se ve envuelto en un conflicto entre los humanos y la población nativa Na’vi.',
-      image: '/pelis/Avatar.jpg'
-    },
-    {
-      id: 12,
-      title: 'The Pursuit of Happyness',
-      genre: 'Drama',
-      rating: 4.8,
-      year: 2006,
-      duration: '1h 57min',
-      director: 'Gabriele Muccino',
-      cast: ['Will Smith', 'Jaden Smith', 'Thandiwe Newton'],
-      description: 'Basada en una historia real, sigue a Chris Gardner en su lucha por superar la pobreza mientras persigue una mejor vida para él y su hijo.',
-      image: '/pelis/Felicidad.jpg'
-    }
-  ];
+      console.log("PELICULAS:", peliculas);
 
-  const allMovies = [...mockMovies, ...recommendations];
+      setMovies(peliculas);
+      setRecommendations(peliculas.slice(0, 4));
+    })
+    .catch(err => console.error(err));
+  }, []);
+  const allMovies = [...movies, ...recommendations];
 
   const categories = ['Todas', 'Acción', 'Drama', 'Ciencia Ficción', 'Romance', 'Suspenso', 'Terror'];
 
-  const filteredMovies = selectedCategory === 'Todas'
-    ? mockMovies
-    : mockMovies.filter(movie => movie.genre === selectedCategory);
+  const filteredMovies =
+  selectedCategory === 'Todas'
+    ? movies
+    : movies.filter(movie => movie.genre === selectedCategory);
 
   const filteredRecommendations = selectedCategory === 'Todas'
     ? recommendations
@@ -274,9 +148,9 @@ export default function App() {
     e.preventDefault();
     if (loginForm.email && loginForm.password) {
       const profile: UserProfile = {
+        id: 1,
         name: loginForm.email.split('@')[0],
         email: loginForm.email,
-        password: loginForm.password,
         joinDate: '2026-01-15',
         emotionAnalysisEnabled: false
       };
@@ -292,9 +166,9 @@ export default function App() {
     e.preventDefault();
     if (registerForm.name && registerForm.email && registerForm.password) {
       const profile: UserProfile = {
+        id: Date.now(),
         name: registerForm.name,
         email: registerForm.email,
-        password: registerForm.password,
         joinDate: new Date().toISOString().split('T')[0],
         emotionAnalysisEnabled: false
       };
@@ -331,24 +205,38 @@ export default function App() {
   };
 
   const handleChangePassword = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (userProfile && changePasswordForm.currentPassword === userProfile.password) {
-      if (changePasswordForm.newPassword === changePasswordForm.confirmPassword) {
-        const updatedProfile: UserProfile = {
-          ...userProfile,
-          password: changePasswordForm.newPassword
-        };
-        setUserProfile(updatedProfile);
-        setChangePasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-        setChangingPassword(false);
-        alert('Contraseña actualizada exitosamente');
-      } else {
-        alert('Las contraseñas nuevas no coinciden');
-      }
-    } else {
-      alert('Contraseña actual incorrecta');
-    }
-  };
+  e.preventDefault();
+
+  alert("Función pendiente de conectar con la base de datos");
+
+  setChangePasswordForm({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+
+  setChangingPassword(false);
+};
+
+  // const handleChangePassword = (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   if (userProfile && changePasswordForm.currentPassword === userProfile.password) {
+  //     if (changePasswordForm.newPassword === changePasswordForm.confirmPassword) {
+  //       const updatedProfile: UserProfile = {
+  //         ...userProfile,
+  //         password: changePasswordForm.newPassword
+  //       };
+  //       setUserProfile(updatedProfile);
+  //       setChangePasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  //       setChangingPassword(false);
+  //       alert('Contraseña actualizada exitosamente');
+  //     } else {
+  //       alert('Las contraseñas nuevas no coinciden');
+  //     }
+  //   } else {
+  //     alert('Contraseña actual incorrecta');
+  //   }
+  // };
 
   const handleDeleteAccount = () => {
     setUser(null);
@@ -596,7 +484,8 @@ export default function App() {
     if (newReview.comment.trim() && selectedMovie) {
       const review: Review = {
         id: reviews.length + 1,
-        movieId: selectedMovie.id,
+        usuario_id: userProfile?.id || 0,
+        pelicula_id: selectedMovie.id,
         userName: user || 'Usuario',
         rating: newReview.rating,
         comment: newReview.comment,
@@ -607,8 +496,10 @@ export default function App() {
     }
   };
 
-  const getMovieReviews = (movieId: number) => {
-    return reviews.filter(review => review.movieId === movieId);
+  const getMovieReviews = (peliculaId: number) => {
+  return reviews.filter(
+    review => review.pelicula_id === peliculaId
+    );
   };
 
   const getAverageRating = (movieId: number) => {
@@ -667,7 +558,7 @@ export default function App() {
           <div className="max-w-7xl mx-auto px-4 pb-12">
             <h3 className="text-2xl font-bold mb-6">Vista Previa del Catálogo</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {mockMovies.slice(0, 6).map((movie) => (
+              {movies.slice(0, 6).map((movie) => (
                 <div
                   key={movie.id}
                   className="bg-zinc-900 rounded-lg overflow-hidden border border-zinc-800 opacity-70"
