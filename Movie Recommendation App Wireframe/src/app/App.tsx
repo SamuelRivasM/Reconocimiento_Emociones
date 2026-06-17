@@ -11,7 +11,7 @@ interface Movie {
   director: string;
   cast: string[];
   description: string;
-  image:string;
+  image: string;
 }
 
 interface Review {
@@ -82,7 +82,7 @@ export default function App() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [newReview, setNewReview] = useState({ rating: 5, comment: '' });
   const [showMovieForm, setShowMovieForm] = useState(false);
-  const [movieForm, setMovieForm] = useState({nombre: "",genero: "",anio: "",duracion: "",director: "",cast: "",descripcion: "",imagen: ""});
+  const [movieForm, setMovieForm] = useState({ nombre: "", genero: "", anio: "", duracion: "", director: "", cast: "", descripcion: "", imagen: "" });
 
   // Emotion Detection State
   const [showEmotionConsent, setShowEmotionConsent] = useState(false);
@@ -99,38 +99,38 @@ export default function App() {
   const [movies, setMovies] = useState<Movie[]>([]);
   const [recommendations, setRecommendations] = useState<Movie[]>([]);
   useEffect(() => {
-  fetch("http://localhost:3001/movies")
-    .then(res => res.json())
-    .then(data => {
+    fetch("http://localhost:3001/movies")
+      .then(res => res.json())
+      .then(data => {
 
-      const peliculas: Movie[] = data.map((m: any) => ({
-        id: m.id,
-        title: m.title,
-        genre: m.genre,
-        rating: m.rating || 0,
-        year: m.year,
-        duration: m.duration,
-        director: m.director,
-        cast: m.cast || [],
-        description: m.description,
-        image: m.image
-      }));
+        const peliculas: Movie[] = data.map((m: any) => ({
+          id: m.id,
+          title: m.title,
+          genre: m.genre,
+          rating: m.rating || 0,
+          year: m.year,
+          duration: m.duration,
+          director: m.director,
+          cast: m.cast || [],
+          description: m.description,
+          image: m.image
+        }));
 
-      console.log("PELICULAS:", peliculas);
+        console.log("PELICULAS:", peliculas);
 
-      setMovies(peliculas);
-      setRecommendations(peliculas.slice(0, 4));
-    })
-    .catch(err => console.error(err));
+        setMovies(peliculas);
+        setRecommendations(peliculas.slice(0, 4));
+      })
+      .catch(err => console.error(err));
   }, []);
   const allMovies = [...movies, ...recommendations];
 
   const categories = ['Todas', 'Acción', 'Drama', 'Ciencia Ficción', 'Romance', 'Suspenso', 'Terror'];
 
   const filteredMovies =
-  selectedCategory === 'Todas'
-    ? movies
-    : movies.filter(movie => movie.genre === selectedCategory);
+    selectedCategory === 'Todas'
+      ? movies
+      : movies.filter(movie => movie.genre === selectedCategory);
 
   const filteredRecommendations = selectedCategory === 'Todas'
     ? recommendations
@@ -270,18 +270,18 @@ export default function App() {
   };
 
   const handleChangePassword = (e: React.FormEvent) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  alert("Función pendiente de conectar con la base de datos");
+    alert("Función pendiente de conectar con la base de datos");
 
-  setChangePasswordForm({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
-  });
+    setChangePasswordForm({
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    });
 
-  setChangingPassword(false);
-};
+    setChangingPassword(false);
+  };
 
   // const handleChangePassword = (e: React.FormEvent) => {
   //   e.preventDefault();
@@ -473,17 +473,27 @@ export default function App() {
 
   const activatePhotoCamera = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: 1280, height: 720, facingMode: "user" }
+      });
       streamRef.current = stream;
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        videoRef.current.play();
+
+        // Forzamos al navegador a escuchar el flujo antes de reproducir
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current?.play()
+            .then(() => console.log("Webcam reproduciendo en vivo."))
+            .catch(err => console.error("El navegador bloqueó el play automático:", err));
+        };
       }
       setCameraActive(true);
       setCapturedPhoto(null);
       setDetectedEmotion(null);
-    } catch {
-      alert('No se pudo acceder a la cámara. Por favor permite el acceso.');
+    } catch (error) {
+      console.error("Error detallado de cámara:", error);
+      alert('No se pudo acceder a la cámara. Revisa que ninguna otra aplicación (como Zoom, Teams o el script prueba.py) la esté reteniendo.');
     }
   };
 
@@ -495,51 +505,98 @@ export default function App() {
     setCameraActive(false);
   };
 
-  const capturePhoto = () => {
+  const capturePhoto = async () => {
     if (!videoRef.current || !canvasRef.current) return;
     const video = videoRef.current;
     const canvas = canvasRef.current;
+
+    // 1. Dibujar el frame de la cámara en el canvas oculto
     canvas.width = video.videoWidth || 640;
     canvas.height = video.videoHeight || 480;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    // 2. Convertir a formato Base64 para la API de Python
     const dataUrl = canvas.toDataURL('image/jpeg');
     setCapturedPhoto(dataUrl);
     stopPhotoCamera();
 
-    // Simulate emotion detection from photo
-    const emotions = ['feliz', 'triste', 'enojado', 'sorprendido', 'neutral', 'emocionado', 'asustado'];
-    const detected = emotions[Math.floor(Math.random() * emotions.length)];
-    setDetectedEmotion(detected);
+    try {
+      // 3. Enviar la foto real a tu servidor FastAPI (Puerto 5000)
+      const response = await fetch("http://127.0.0.1:5000/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: dataUrl }),
+      });
 
-    // Generate movie recommendations based on detected emotion
-    const emotionGenreMap: { [key: string]: string[] } = {
-      feliz: ['Comedia', 'Aventura', 'Romance'],
-      triste: ['Drama', 'Romance'],
-      enojado: ['Acción', 'Suspenso'],
-      sorprendido: ['Ciencia Ficción', 'Misterio', 'Suspenso'],
-      neutral: ['Drama', 'Aventura'],
-      emocionado: ['Acción', 'Ciencia Ficción'],
-      asustado: ['Terror', 'Suspenso'],
-    };
-    const genres = emotionGenreMap[detected] || ['Drama'];
-    const recs = allMovies.filter(m => genres.includes(m.genre)).slice(0, 3);
-    setPhotoRecommendations(recs.length > 0 ? recs : allMovies.slice(0, 3));
+      const data = await response.json();
+
+      if (data.success) {
+        // Traducimos la emoción de Python al diccionario en español que usa el código de Jorge
+        const translationMap: { [key: string]: string } = {
+          happy: 'feliz',
+          sad: 'triste',
+          angry: 'enojado',
+          surprise: 'sorprendido',
+          neutral: 'neutral',
+          fear: 'asustado',
+          disgust: 'triste' // Mapeo de escape por si acaso
+        };
+
+        const emotionInSpanish = translationMap[data.dominant_emotion] || 'neutral';
+        setDetectedEmotion(emotionInSpanish);
+
+        // 4. Filtrar las películas locales usando los IDs de género reales que devolvió Python
+        // Tu archivo maneja números para los IDs de género, los convertimos al string correspondiente de la BD
+        const genreIdToNameMap: { [key: number]: string } = {
+          35: 'Comedia',
+          16: 'Ciencia Ficción', // Adaptado a tus categorías
+          12: 'Acción',
+          18: 'Drama',
+          10749: 'Romance',
+          28: 'Acción',
+          53: 'Suspenso',
+          27: 'Terror',
+          9648: 'Suspenso',
+          878: 'Ciencia Ficción',
+          14: 'Ciencia Ficción',
+          99: 'Drama',
+          80: 'Suspenso',
+          10751: 'Drama'
+        };
+
+        // Mapeamos los IDs numéricos sugeridos a nombres de texto que usa tu SQLite
+        const suggestedGenreNames = data.suggested_genres.map((id: number) => genreIdToNameMap[id] || 'Drama');
+
+        // Filtramos del total de películas cargadas aquellas que hagan match con las categorías
+        const recs = allMovies.filter(m => suggestedGenreNames.includes(m.genre)).slice(0, 3);
+        setPhotoRecommendations(recs.length > 0 ? recs : allMovies.slice(0, 3));
+
+      } else {
+        console.error("Error devuelto por DeepFace:", data.error);
+        setDetectedEmotion('neutral');
+        setPhotoRecommendations(allMovies.slice(0, 3));
+      }
+    } catch (error) {
+      console.error("Error conectando con emotion_api.py:", error);
+      alert("Asegúrate de tener corriendo tu servidor de Python en el puerto 5000.");
+      setDetectedEmotion('neutral');
+    }
   };
 
   const selectEmotionManually = (emotion: string) => {
     setDetectedEmotion(emotion);
     const emotionGenreMap: { [key: string]: string[] } = {
-      feliz: ['Comedia', 'Aventura', 'Romance'],
+      feliz: ['Comedia', 'Romance'],
       triste: ['Drama', 'Romance'],
       enojado: ['Acción', 'Suspenso'],
-      sorprendido: ['Ciencia Ficción', 'Misterio', 'Suspenso'],
-      neutral: ['Drama', 'Aventura'],
+      sorprendido: ['Ciencia Ficción', 'Suspenso'],
+      neutral: ['Todas'],
       emocionado: ['Acción', 'Ciencia Ficción'],
       asustado: ['Terror', 'Suspenso'],
     };
-    const genres = emotionGenreMap[emotion] || ['Drama'];
+    const genres = emotionGenreMap[emotion] || ['Todas'];
     const recs = allMovies.filter(m => genres.includes(m.genre)).slice(0, 3);
     setPhotoRecommendations(recs.length > 0 ? recs : allMovies.slice(0, 3));
     setCapturedPhoto(null);
@@ -562,8 +619,8 @@ export default function App() {
   };
 
   const getMovieReviews = (peliculaId: number) => {
-  return reviews.filter(
-    review => review.pelicula_id === peliculaId
+    return reviews.filter(
+      review => review.pelicula_id === peliculaId
     );
   };
 
@@ -1190,7 +1247,7 @@ export default function App() {
           </div>
         </div>
       )}
-      
+
       {/* poner pelis */}
       {showMovieForm && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
@@ -1352,11 +1409,10 @@ export default function App() {
                     <Play className="w-20 h-20 text-zinc-600" />
                     <button
                       onClick={() => toggleMyList(selectedMovie.id)}
-                      className={`absolute top-4 left-4 px-4 py-2 rounded-lg transition flex items-center gap-2 ${
-                        myList.includes(selectedMovie.id)
-                          ? 'bg-red-500 hover:bg-red-600'
-                          : 'bg-zinc-950/80 hover:bg-red-500'
-                      }`}
+                      className={`absolute top-4 left-4 px-4 py-2 rounded-lg transition flex items-center gap-2 ${myList.includes(selectedMovie.id)
+                        ? 'bg-red-500 hover:bg-red-600'
+                        : 'bg-zinc-950/80 hover:bg-red-500'
+                        }`}
                     >
                       {myList.includes(selectedMovie.id) ? (
                         <>
@@ -1571,11 +1627,10 @@ export default function App() {
                             className="transition hover:scale-110"
                           >
                             <Star
-                              className={`w-5 h-5 ${
-                                star <= newReview.rating
-                                  ? 'fill-yellow-500 text-yellow-500'
-                                  : 'text-zinc-600'
-                              }`}
+                              className={`w-5 h-5 ${star <= newReview.rating
+                                ? 'fill-yellow-500 text-yellow-500'
+                                : 'text-zinc-600'
+                                }`}
                             />
                           </button>
                         ))}
@@ -1621,11 +1676,10 @@ export default function App() {
                                 {[...Array(5)].map((_, i) => (
                                   <Star
                                     key={i}
-                                    className={`w-4 h-4 ${
-                                      i < review.rating
-                                        ? 'fill-yellow-500 text-yellow-500'
-                                        : 'text-zinc-600'
-                                    }`}
+                                    className={`w-4 h-4 ${i < review.rating
+                                      ? 'fill-yellow-500 text-yellow-500'
+                                      : 'text-zinc-600'
+                                      }`}
                                   />
                                 ))}
                               </div>
@@ -1673,11 +1727,10 @@ export default function App() {
               </button>
               <button
                 onClick={() => setCurrentView('mylist')}
-                className={`px-4 py-2 rounded-lg transition flex items-center gap-2 ${
-                  currentView === 'mylist'
-                    ? 'bg-red-500 hover:bg-red-600'
-                    : 'bg-zinc-900 hover:bg-zinc-800'
-                }`}
+                className={`px-4 py-2 rounded-lg transition flex items-center gap-2 ${currentView === 'mylist'
+                  ? 'bg-red-500 hover:bg-red-600'
+                  : 'bg-zinc-900 hover:bg-zinc-800'
+                  }`}
               >
                 Mi Lista
                 {myList.length > 0 && (
@@ -1695,11 +1748,10 @@ export default function App() {
                   setDetectedEmotion(null);
                   setCameraActive(false);
                 }}
-                className={`px-4 py-2 rounded-lg transition flex items-center gap-2 ${
-                  currentView === 'photo'
-                    ? 'bg-red-500 hover:bg-red-600'
-                    : 'bg-zinc-900 hover:bg-zinc-800'
-                }`}
+                className={`px-4 py-2 rounded-lg transition flex items-center gap-2 ${currentView === 'photo'
+                  ? 'bg-red-500 hover:bg-red-600'
+                  : 'bg-zinc-900 hover:bg-zinc-800'
+                  }`}
               >
                 <Camera className="w-4 h-4" />
                 Capturar Foto
@@ -1708,11 +1760,10 @@ export default function App() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setCurrentView('profile')}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition ${
-                    currentView === 'profile'
-                      ? 'bg-red-500 hover:bg-red-600'
-                      : 'bg-zinc-900 hover:bg-zinc-800'
-                  }`}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition ${currentView === 'profile'
+                    ? 'bg-red-500 hover:bg-red-600'
+                    : 'bg-zinc-900 hover:bg-zinc-800'
+                    }`}
                 >
                   <User className="w-4 h-4" />
                   <span className="text-sm">{user}</span>
@@ -1735,11 +1786,10 @@ export default function App() {
                 <button
                   key={category}
                   onClick={() => setSelectedCategory(category)}
-                  className={`px-4 py-2 rounded-lg transition whitespace-nowrap ${
-                    selectedCategory === category
-                      ? 'bg-red-500 text-white'
-                      : 'bg-zinc-900 hover:bg-zinc-800'
-                  }`}
+                  className={`px-4 py-2 rounded-lg transition whitespace-nowrap ${selectedCategory === category
+                    ? 'bg-red-500 text-white'
+                    : 'bg-zinc-900 hover:bg-zinc-800'
+                    }`}
                 >
                   {category}
                 </button>
@@ -1775,11 +1825,10 @@ export default function App() {
                           e.stopPropagation();
                           toggleMyList(movie.id);
                         }}
-                        className={`absolute top-2 right-2 p-2 rounded-full transition ${
-                          myList.includes(movie.id)
-                            ? 'bg-red-500 hover:bg-red-600'
-                            : 'bg-zinc-950/80 hover:bg-red-500'
-                        }`}
+                        className={`absolute top-2 right-2 p-2 rounded-full transition ${myList.includes(movie.id)
+                          ? 'bg-red-500 hover:bg-red-600'
+                          : 'bg-zinc-950/80 hover:bg-red-500'
+                          }`}
                         title={myList.includes(movie.id) ? 'Quitar de mi lista' : 'Agregar a mi lista'}
                       >
                         {myList.includes(movie.id) ? (
@@ -1828,11 +1877,10 @@ export default function App() {
                           e.stopPropagation();
                           toggleMyList(movie.id);
                         }}
-                        className={`absolute top-2 right-2 p-2 rounded-full transition ${
-                          myList.includes(movie.id)
-                            ? 'bg-red-500 hover:bg-red-600'
-                            : 'bg-zinc-950/80 hover:bg-red-500'
-                        }`}
+                        className={`absolute top-2 right-2 p-2 rounded-full transition ${myList.includes(movie.id)
+                          ? 'bg-red-500 hover:bg-red-600'
+                          : 'bg-zinc-950/80 hover:bg-red-500'
+                          }`}
                         title={myList.includes(movie.id) ? 'Quitar de mi lista' : 'Agregar a mi lista'}
                       >
                         {myList.includes(movie.id) ? (
@@ -1895,11 +1943,10 @@ export default function App() {
                           e.stopPropagation();
                           toggleMyList(movie.id);
                         }}
-                        className={`absolute top-2 right-2 p-2 rounded-full transition ${
-                          myList.includes(movie.id)
-                            ? 'bg-red-500 hover:bg-red-600'
-                            : 'bg-zinc-950/80 hover:bg-red-500'
-                        }`}
+                        className={`absolute top-2 right-2 p-2 rounded-full transition ${myList.includes(movie.id)
+                          ? 'bg-red-500 hover:bg-red-600'
+                          : 'bg-zinc-950/80 hover:bg-red-500'
+                          }`}
                         title={myList.includes(movie.id) ? 'Quitar de mi lista' : 'Agregar a mi lista'}
                       >
                         {myList.includes(movie.id) ? (
@@ -1935,7 +1982,7 @@ export default function App() {
                   <div className="flex items-center justify-center gap-3 mb-6">
                     <div className="text-red-500">
                       <svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M18 3H6a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h12a3 3 0 0 0 3-3V6a3 3 0 0 0-3-3zM7 8a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm0 5a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm0 5a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm10 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm0-5a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm0-5a1 1 0 1 1 0-2 1 1 0 0 1 0 2zM8 16V8l8 4-8 4z"/>
+                        <path d="M18 3H6a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h12a3 3 0 0 0 3-3V6a3 3 0 0 0-3-3zM7 8a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm0 5a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm0 5a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm10 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm0-5a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm0-5a1 1 0 1 1 0-2 1 1 0 0 1 0 2zM8 16V8l8 4-8 4z" />
                       </svg>
                     </div>
                     <h1 className="text-2xl font-bold text-red-500">MovieFlix</h1>
@@ -1984,185 +2031,184 @@ export default function App() {
             ) : (
               /* Capture screen */
               <div className="max-w-3xl mx-auto py-8">
-              <div className="text-center mb-8">
-                <h2 className="text-3xl font-bold mb-2">Detecta tu emoción</h2>
-                <p className="text-zinc-400">
-                  Activa la cámara y deja que nuestra IA detecte tu estado de ánimo
-                </p>
-              </div>
-
-              {/* Camera / Photo area */}
-              <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden mb-6">
-                <div className="relative aspect-video bg-zinc-950 flex items-center justify-center">
-                  {capturedPhoto ? (
-                    <img
-                      src={capturedPhoto}
-                      alt="Foto capturada"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : cameraActive ? (
-                    <video
-                      ref={videoRef}
-                      autoPlay
-                      muted
-                      playsInline
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex flex-col items-center gap-4 text-zinc-600">
-                      <div className="w-24 h-24 rounded-full bg-zinc-800 flex items-center justify-center">
-                        <Camera className="w-12 h-12" />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Scanning overlay when camera is active */}
-                  {cameraActive && (
-                    <div className="absolute inset-0 pointer-events-none">
-                      <div className="absolute top-4 left-4 w-8 h-8 border-t-2 border-l-2 border-red-500 rounded-tl-lg" />
-                      <div className="absolute top-4 right-4 w-8 h-8 border-t-2 border-r-2 border-red-500 rounded-tr-lg" />
-                      <div className="absolute bottom-4 left-4 w-8 h-8 border-b-2 border-l-2 border-red-500 rounded-bl-lg" />
-                      <div className="absolute bottom-4 right-4 w-8 h-8 border-b-2 border-r-2 border-red-500 rounded-br-lg" />
-                      <div className="absolute top-2 right-2 flex items-center gap-2 bg-red-500 rounded-full px-3 py-1 text-xs font-semibold">
-                        <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                        EN VIVO
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Detected emotion overlay on captured photo */}
-                  {capturedPhoto && detectedEmotion && (
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-zinc-950/90 border border-zinc-700 rounded-xl px-6 py-3 flex items-center gap-3">
-                      <span className="text-3xl">{getEmotionIcon(detectedEmotion)}</span>
-                      <div>
-                        <p className="text-xs text-zinc-400">Emoción detectada</p>
-                        <p className="font-bold capitalize text-lg">{detectedEmotion}</p>
-                      </div>
-                    </div>
-                  )}
+                <div className="text-center mb-8">
+                  <h2 className="text-3xl font-bold mb-2">Detecta tu emoción</h2>
+                  <p className="text-zinc-400">
+                    Activa la cámara y deja que nuestra IA detecte tu estado de ánimo
+                  </p>
                 </div>
 
-                {/* Camera controls */}
-                <div className="p-4 flex items-center justify-center gap-3">
-                  {!cameraActive && !capturedPhoto && (
-                    <button
-                      onClick={activatePhotoCamera}
-                      className="px-8 py-3 bg-red-500 rounded-lg hover:bg-red-600 transition font-semibold flex items-center gap-2"
-                    >
-                      <Camera className="w-5 h-5" />
-                      Activar Cámara
-                    </button>
-                  )}
-                  {cameraActive && (
-                    <>
+                {/* Camera / Photo area */}
+                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden mb-6">
+                  <div className="relative aspect-video bg-zinc-950 flex items-center justify-center">
+                    {capturedPhoto ? (
+                      <img
+                        src={capturedPhoto}
+                        alt="Foto capturada"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : cameraActive ? (
+                      <video
+                        ref={videoRef}
+                        autoPlay
+                        muted
+                        playsInline
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center gap-4 text-zinc-600">
+                        <div className="w-24 h-24 rounded-full bg-zinc-800 flex items-center justify-center">
+                          <Camera className="w-12 h-12" />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Scanning overlay when camera is active */}
+                    {cameraActive && (
+                      <div className="absolute inset-0 pointer-events-none">
+                        <div className="absolute top-4 left-4 w-8 h-8 border-t-2 border-l-2 border-red-500 rounded-tl-lg" />
+                        <div className="absolute top-4 right-4 w-8 h-8 border-t-2 border-r-2 border-red-500 rounded-tr-lg" />
+                        <div className="absolute bottom-4 left-4 w-8 h-8 border-b-2 border-l-2 border-red-500 rounded-bl-lg" />
+                        <div className="absolute bottom-4 right-4 w-8 h-8 border-b-2 border-r-2 border-red-500 rounded-br-lg" />
+                        <div className="absolute top-2 right-2 flex items-center gap-2 bg-red-500 rounded-full px-3 py-1 text-xs font-semibold">
+                          <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                          EN VIVO
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Detected emotion overlay on captured photo */}
+                    {capturedPhoto && detectedEmotion && (
+                      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-zinc-950/90 border border-zinc-700 rounded-xl px-6 py-3 flex items-center gap-3">
+                        <span className="text-3xl">{getEmotionIcon(detectedEmotion)}</span>
+                        <div>
+                          <p className="text-xs text-zinc-400">Emoción detectada</p>
+                          <p className="font-bold capitalize text-lg">{detectedEmotion}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Camera controls */}
+                  <div className="p-4 flex items-center justify-center gap-3">
+                    {!cameraActive && !capturedPhoto && (
                       <button
-                        onClick={capturePhoto}
+                        onClick={activatePhotoCamera}
                         className="px-8 py-3 bg-red-500 rounded-lg hover:bg-red-600 transition font-semibold flex items-center gap-2"
                       >
                         <Camera className="w-5 h-5" />
-                        Tomar Foto
+                        Activar Cámara
                       </button>
+                    )}
+                    {cameraActive && (
+                      <>
+                        <button
+                          onClick={capturePhoto}
+                          className="px-8 py-3 bg-red-500 rounded-lg hover:bg-red-600 transition font-semibold flex items-center gap-2"
+                        >
+                          <Camera className="w-5 h-5" />
+                          Tomar Foto
+                        </button>
+                        <button
+                          onClick={stopPhotoCamera}
+                          className="px-6 py-3 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition flex items-center gap-2"
+                        >
+                          <CameraOff className="w-5 h-5" />
+                          Cancelar
+                        </button>
+                      </>
+                    )}
+                    {capturedPhoto && (
                       <button
-                        onClick={stopPhotoCamera}
+                        onClick={() => {
+                          setCapturedPhoto(null);
+                          setDetectedEmotion(null);
+                          setPhotoRecommendations([]);
+                        }}
                         className="px-6 py-3 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition flex items-center gap-2"
                       >
-                        <CameraOff className="w-5 h-5" />
-                        Cancelar
+                        <X className="w-5 h-5" />
+                        Nueva Foto
                       </button>
-                    </>
-                  )}
-                  {capturedPhoto && (
-                    <button
-                      onClick={() => {
-                        setCapturedPhoto(null);
-                        setDetectedEmotion(null);
-                        setPhotoRecommendations([]);
-                      }}
-                      className="px-6 py-3 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition flex items-center gap-2"
-                    >
-                      <X className="w-5 h-5" />
-                      Nueva Foto
-                    </button>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              {/* Hidden canvas for capturing */}
-              <canvas ref={canvasRef} className="hidden" />
+                {/* Hidden canvas for capturing */}
+                <canvas ref={canvasRef} className="hidden" />
 
-              {/* Manual emotion selection */}
-              <div className="mb-6">
-                <p className="text-center text-sm text-zinc-400 mb-4">
-                  {capturedPhoto ? 'O ajusta tu emoción manualmente:' : '¿O prefieres seleccionar tu emoción?'}
-                </p>
-                <div className="flex flex-wrap justify-center gap-3">
-                  {[
-                    { key: 'feliz', label: 'Feliz' },
-                    { key: 'triste', label: 'Triste' },
-                    { key: 'enojado', label: 'Enojado' },
-                    { key: 'sorprendido', label: 'Sorprendido' },
-                    { key: 'neutral', label: 'Neutral' },
-                    { key: 'emocionado', label: 'Emocionado' },
-                    { key: 'asustado', label: 'Asustado' },
-                  ].map(({ key, label }) => (
-                    <button
-                      key={key}
-                      onClick={() => selectEmotionManually(key)}
-                      className={`flex flex-col items-center gap-1 px-4 py-3 rounded-xl transition border ${
-                        detectedEmotion === key && !capturedPhoto
+                {/* Manual emotion selection */}
+                <div className="mb-6">
+                  <p className="text-center text-sm text-zinc-400 mb-4">
+                    {capturedPhoto ? 'O ajusta tu emoción manualmente:' : '¿O prefieres seleccionar tu emoción?'}
+                  </p>
+                  <div className="flex flex-wrap justify-center gap-3">
+                    {[
+                      { key: 'feliz', label: 'Feliz' },
+                      { key: 'triste', label: 'Triste' },
+                      { key: 'enojado', label: 'Enojado' },
+                      { key: 'sorprendido', label: 'Sorprendido' },
+                      { key: 'neutral', label: 'Neutral' },
+                      { key: 'emocionado', label: 'Emocionado' },
+                      { key: 'asustado', label: 'Asustado' },
+                    ].map(({ key, label }) => (
+                      <button
+                        key={key}
+                        onClick={() => selectEmotionManually(key)}
+                        className={`flex flex-col items-center gap-1 px-4 py-3 rounded-xl transition border ${detectedEmotion === key && !capturedPhoto
                           ? 'bg-zinc-700 border-red-500'
                           : 'bg-zinc-900 border-zinc-800 hover:border-zinc-600'
-                      }`}
-                    >
-                      <span className="text-2xl">{getEmotionIcon(key)}</span>
-                      <span className="text-xs text-zinc-300">{label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Movie Recommendations based on emotion */}
-              {detectedEmotion && photoRecommendations.length > 0 && (
-                <div className="bg-gradient-to-r from-red-900/20 to-red-800/10 border border-red-800/40 rounded-2xl p-6">
-                  <h3 className="text-lg font-bold mb-1 flex items-center gap-2">
-                    <Zap className="w-5 h-5 text-red-500" />
-                    Películas para tu estado de ánimo
-                  </h3>
-                  <p className="text-sm text-zinc-400 mb-4">
-                    Basado en tu emoción <span className="capitalize font-semibold text-white">{detectedEmotion}</span>
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    {photoRecommendations.map((movie) => (
-                      <div
-                        key={movie.id}
-                        onClick={() => {
-                          setSelectedMovie(movie);
-                        }}
-                        className="bg-zinc-900 rounded-xl overflow-hidden border border-zinc-800 hover:border-red-500 transition cursor-pointer group"
+                          }`}
                       >
-                        <div className="aspect-[2/3] relative overflow-hidden">
-                          <img
-                            src={movie.image}
-                            alt={movie.title}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div className="p-3">
-                          <h4 className="font-semibold truncate mb-1">{movie.title}</h4>
-                          <div className="flex items-center justify-between text-xs text-zinc-400">
-                            <span>{movie.genre}</span>
-                            <div className="flex items-center gap-1">
-                              <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
-                              <span>{movie.rating}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+                        <span className="text-2xl">{getEmotionIcon(key)}</span>
+                        <span className="text-xs text-zinc-300">{label}</span>
+                      </button>
                     ))}
                   </div>
                 </div>
-              )}
-            </div>
+
+                {/* Movie Recommendations based on emotion */}
+                {detectedEmotion && photoRecommendations.length > 0 && (
+                  <div className="bg-gradient-to-r from-red-900/20 to-red-800/10 border border-red-800/40 rounded-2xl p-6">
+                    <h3 className="text-lg font-bold mb-1 flex items-center gap-2">
+                      <Zap className="w-5 h-5 text-red-500" />
+                      Películas para tu estado de ánimo
+                    </h3>
+                    <p className="text-sm text-zinc-400 mb-4">
+                      Basado en tu emoción <span className="capitalize font-semibold text-white">{detectedEmotion}</span>
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      {photoRecommendations.map((movie) => (
+                        <div
+                          key={movie.id}
+                          onClick={() => {
+                            setSelectedMovie(movie);
+                          }}
+                          className="bg-zinc-900 rounded-xl overflow-hidden border border-zinc-800 hover:border-red-500 transition cursor-pointer group"
+                        >
+                          <div className="aspect-[2/3] relative overflow-hidden">
+                            <img
+                              src={movie.image}
+                              alt={movie.title}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="p-3">
+                            <h4 className="font-semibold truncate mb-1">{movie.title}</h4>
+                            <div className="flex items-center justify-between text-xs text-zinc-400">
+                              <span>{movie.genre}</span>
+                              <div className="flex items-center gap-1">
+                                <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
+                                <span>{movie.rating}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
           </section>
         ) : (
@@ -2374,11 +2420,10 @@ export default function App() {
                           setCameraPermissionGranted(false);
                         }
                       }}
-                      className={`px-4 py-2 rounded-lg transition ${
-                        userProfile.emotionAnalysisEnabled
-                          ? 'bg-red-500 hover:bg-red-600'
-                          : 'bg-zinc-700 hover:bg-zinc-600'
-                      }`}
+                      className={`px-4 py-2 rounded-lg transition ${userProfile.emotionAnalysisEnabled
+                        ? 'bg-red-500 hover:bg-red-600'
+                        : 'bg-zinc-700 hover:bg-zinc-600'
+                        }`}
                     >
                       {userProfile.emotionAnalysisEnabled ? 'Desactivar' : 'Activar'}
                     </button>
