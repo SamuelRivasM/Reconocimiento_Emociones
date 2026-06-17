@@ -11,6 +11,7 @@ interface Movie {
   director: string;
   cast: string[];
   description: string;
+  image:string;
 }
 
 interface Review {
@@ -108,6 +109,7 @@ export default function App() {
       director: 'Sofia Chen',
       cast: ['Alex Rivera', 'Maya Patel', 'James Park'],
       description: 'En un futuro distópico, un hacker solitario descubre un complot que amenaza con destruir la última ciudad libre del planeta. Una aventura visual impresionante que explora los límites de la tecnología y la humanidad.'
+      ,image:"/pelis/NocheNeon.jpg"
     },
     {
       id: 2,
@@ -119,28 +121,31 @@ export default function App() {
       director: 'Marco Delgado',
       cast: ['Elena Torres', 'David Kim', 'Sara Mendoza'],
       description: 'Un grupo de exploradores se embarca en una expedición para encontrar una civilización perdida en la selva amazónica. Lo que descubren cambiará la historia para siempre.'
+      ,image:"/pelis/UltimoViaje.jpg"
     },
     {
       id: 3,
-      title: 'La Mansión del Misterio',
+      title: 'Shutter Island',
       genre: 'Suspenso',
-      rating: 4.8,
-      year: 2026,
-      duration: '1h 58min',
-      director: 'Victoria Black',
-      cast: ['Robert Quinn', 'Lisa Chen', 'Michael Stone'],
-      description: 'Una detective es invitada a una mansión aislada donde debe resolver un crimen antes del amanecer. Cada habitación esconde un secreto y nadie es quien parece ser.'
+      rating: 4.9,
+      year: 2010,
+      duration: '2h 18min',
+      director: 'Martin Scorsese',
+      cast: ['Leonardo DiCaprio', 'Mark Ruffalo', 'Ben Kingsley'],
+      description: 'Un agente federal investiga la desaparición de una paciente en un hospital psiquiátrico ubicado en una isla remota, descubriendo secretos inquietantes que desafían su propia percepción de la realidad.',
+      image: '/pelis/ShutterIsland.jpg'
     },
     {
       id: 4,
-      title: 'Sueños de Verano',
+      title: 'La La Land',
       genre: 'Romance',
-      rating: 3.9,
-      year: 2025,
-      duration: '1h 45min',
-      director: 'Lucia Morales',
-      cast: ['Andrea Silva', 'Carlos Vega', 'Julia Ramos'],
-      description: 'Dos extraños se encuentran en una playa durante un verano mágico. Una historia sobre el amor, las segundas oportunidades y los sueños que nunca dejamos ir.'
+      rating: 4.8,
+      year: 2016,
+      duration: '2h 8min',
+      director: 'Damien Chazelle',
+      cast: ['Ryan Gosling', 'Emma Stone', 'John Legend'],
+      description: 'Una aspirante a actriz y un apasionado músico de jazz se enamoran mientras persiguen sus sueños en Los Ángeles. Su relación se pone a prueba cuando el éxito comienza a cambiar el rumbo de sus vidas.'
+      ,image:"/pelis/NocheNeon.jpg"
     },
     {
       id: 5,
@@ -152,6 +157,7 @@ export default function App() {
       director: 'Thomas Grave',
       cast: ['Emma Dark', 'Ryan Hunt', 'Sophie Moon'],
       description: 'Una familia se muda a una casa antigua en el campo, pero pronto descubren que no están solos. Una experiencia aterradora que desafía los límites del género.'
+      ,image:"/pelis/HorizonteOscuro.jpg"
     },
     {
       id: 6,
@@ -163,76 +169,83 @@ export default function App() {
       director: 'Ivan Cosmos',
       cast: ['Nathan Star', 'Zoe Luna', 'Marcus Nova'],
       description: 'La humanidad envía su primera misión tripulada más allá del sistema solar. Un viaje épico que explora lo que significa ser humano en la inmensidad del universo.'
+      ,image:"/pelis/OdiseaEspacial.jpg"
     },
     {
       id: 7,
-      title: 'Cuentos del Oeste',
-      genre: 'Western',
-      rating: 4.0,
-      year: 2024,
-      duration: '2h 10min',
-      director: 'Jake Stone',
-      cast: ['William Dust', 'Kate Rivers', 'Sam Desert'],
-      description: 'Un forajido retirado debe tomar las armas una última vez para proteger a un pueblo indefenso de una banda de criminales despiadados.'
+      title: 'Top Gun: Maverick',
+      genre: 'Acción',
+      rating: 4.8,
+      year: 2022,
+      duration: '2h 11min',
+      director: 'Joseph Kosinski',
+      cast: ['Tom Cruise', 'Miles Teller', 'Jennifer Connelly'],
+      description: 'Después de más de treinta años de servicio, Pete "Maverick" Mitchell regresa para entrenar a una nueva generación de pilotos de élite en una misión extremadamente peligrosa.'
+      ,image: '/pelis/topgun.jpg'
     },
     {
       id: 8,
-      title: 'Ciudad de Sueños',
+      title: 'Oppenheimer',
       genre: 'Drama',
-      rating: 4.4,
-      year: 2025,
-      duration: '2h 8min',
-      director: 'Ana Beltrán',
-      cast: ['Diego Campos', 'Isabella Cruz', 'Luis Vega'],
-      description: 'Tres vidas se entrelazan en una gran ciudad mientras persiguen sus sueños. Una reflexión conmovedora sobre la ambición, la esperanza y el sacrificio.'
+      rating: 4.9,
+      year: 2023,
+      duration: '3h 0min',
+      director: 'Christopher Nolan',
+      cast: ['Cillian Murphy', 'Emily Blunt', 'Matt Damon'],
+      description: 'La historia de J. Robert Oppenheimer y el desarrollo del Proyecto Manhattan, explorando los desafíos científicos, éticos y personales detrás de la creación de la bomba atómica.',
+      image: '/pelis/oppenheimer.jpg'
     },
   ];
 
   const recommendations: Movie[] = [
     {
       id: 9,
-      title: 'Corredor de Medianoche',
+      title: 'The Dark Knight',
       genre: 'Acción',
-      rating: 4.3,
-      year: 2026,
-      duration: '1h 55min',
-      director: 'Ryan Bolt',
-      cast: ['Jack Speed', 'Mia Fast', 'Tom Rush'],
-      description: 'Un mensajero clandestino debe entregar un paquete misterioso antes del amanecer mientras es perseguido por agentes corruptos y mercenarios.'
+      rating: 4.9,
+      year: 2008,
+      duration: '2h 32min',
+      director: 'Christopher Nolan',
+      cast: ['Christian Bale', 'Heath Ledger', 'Aaron Eckhart'],
+      description: 'Batman enfrenta al Joker, un criminal impredecible que busca sumir Gotham en el caos. Considerada una de las mejores películas de superhéroes de todos los tiempos.',
+      image: '/pelis/Batman.jpg'
     },
     {
       id: 10,
-      title: 'Eco Silencioso',
-      genre: 'Misterio',
-      rating: 4.7,
-      year: 2025,
-      duration: '2h 3min',
-      director: 'Laura Mist',
-      cast: ['Daniel Grey', 'Nina Shadow', 'Mark Whisper'],
-      description: 'Un psicólogo forense investiga una serie de casos extraños donde las víctimas parecen haber perdido la capacidad de hablar antes de desaparecer.'
+      title: 'Inception',
+      genre: 'Ciencia Ficción',
+      rating: 4.8,
+      year: 2010,
+      duration: '2h 28min',
+      director: 'Christopher Nolan',
+      cast: ['Leonardo DiCaprio', 'Joseph Gordon-Levitt', 'Elliot Page'],
+      description: 'Un experto en infiltrarse en los sueños recibe la misión de implantar una idea en la mente de una persona, enfrentando peligros que desafían la realidad.',
+      image: '/pelis/inception.jpg'
     },
     {
       id: 11,
-      title: 'Azul Océano',
+      title: 'Avatar',
       genre: 'Aventura',
-      rating: 4.5,
-      year: 2024,
-      duration: '2h 12min',
-      director: 'Marina Deep',
-      cast: ['Ocean Blue', 'Coral Reef', 'Wave Rider'],
-      description: 'Un biólogo marino descubre una especie desconocida en las profundidades del océano que podría cambiar nuestra comprensión de la vida en la Tierra.'
+      rating: 4.6,
+      year: 2009,
+      duration: '2h 42min',
+      director: 'James Cameron',
+      cast: ['Sam Worthington', 'Zoe Saldaña', 'Sigourney Weaver'],
+      description: 'Un exmarine viaja al planeta Pandora, donde se ve envuelto en un conflicto entre los humanos y la población nativa Na’vi.',
+      image: '/pelis/Avatar.jpg'
     },
     {
       id: 12,
-      title: 'Cielo Carmesí',
+      title: 'The Pursuit of Happyness',
       genre: 'Drama',
-      rating: 4.2,
-      year: 2026,
-      duration: '1h 50min',
-      director: 'Rosa Aurora',
-      cast: ['Dawn Sky', 'Sunset Red', 'Cloud White'],
-      description: 'Una artista lucha por encontrar su voz en un mundo que constantemente intenta silenciarla. Una historia inspiradora sobre la perseverancia y la creatividad.'
-    },
+      rating: 4.8,
+      year: 2006,
+      duration: '1h 57min',
+      director: 'Gabriele Muccino',
+      cast: ['Will Smith', 'Jaden Smith', 'Thandiwe Newton'],
+      description: 'Basada en una historia real, sigue a Chris Gardner en su lucha por superar la pobreza mientras persigue una mejor vida para él y su hijo.',
+      image: '/pelis/Felicidad.jpg'
+    }
   ];
 
   const allMovies = [...mockMovies, ...recommendations];
@@ -659,8 +672,12 @@ export default function App() {
                   key={movie.id}
                   className="bg-zinc-900 rounded-lg overflow-hidden border border-zinc-800 opacity-70"
                 >
-                  <div className="aspect-[2/3] bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center">
-                    <Play className="w-8 h-8 text-zinc-600" />
+                  <div className="aspect-[2/3] relative overflow-hidden">
+                    <img
+                      src={movie.image}
+                      alt={movie.title}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                   <div className="p-2">
                     <h4 className="text-sm font-semibold truncate">{movie.title}</h4>
@@ -1575,8 +1592,13 @@ export default function App() {
                     className="bg-zinc-900 rounded-lg overflow-hidden border border-zinc-800 hover:border-red-500 transition cursor-pointer group"
                   >
                     {/* Movie Poster Placeholder */}
-                    <div className="aspect-[2/3] bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center relative">
-                      <Play className="w-12 h-12 text-zinc-600 group-hover:text-red-500 transition" />
+                    <div className="aspect-[2/3] relative overflow-hidden">
+                      <img
+                        src={movie.image}
+                        alt={movie.title}
+                        className="w-full h-full object-cover"
+                      />
+
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -1623,8 +1645,13 @@ export default function App() {
                     onClick={() => setSelectedMovie(movie)}
                     className="bg-zinc-900 rounded-lg overflow-hidden border border-zinc-800 hover:border-red-500 transition cursor-pointer group"
                   >
-                    <div className="aspect-[2/3] bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center relative">
-                      <Play className="w-12 h-12 text-zinc-600 group-hover:text-red-500 transition" />
+                    <div className="aspect-[2/3] relative overflow-hidden">
+                      <img
+                        src={movie.image}
+                        alt={movie.title}
+                        className="w-full h-full object-cover"
+                      />
+
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -1685,17 +1712,30 @@ export default function App() {
                     onClick={() => setSelectedMovie(movie)}
                     className="bg-zinc-900 rounded-lg overflow-hidden border border-zinc-800 hover:border-red-500 transition cursor-pointer group"
                   >
-                    <div className="aspect-[2/3] bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center relative">
-                      <Play className="w-12 h-12 text-zinc-600 group-hover:text-red-500 transition" />
+                    <div className="aspect-[2/3] relative overflow-hidden">
+                      <img
+                        src={movie.image}
+                        alt={movie.title}
+                        className="w-full h-full object-cover"
+                      />
+
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           toggleMyList(movie.id);
                         }}
-                        className="absolute top-2 right-2 p-2 bg-red-500 hover:bg-red-600 rounded-full transition"
-                        title="Quitar de mi lista"
+                        className={`absolute top-2 right-2 p-2 rounded-full transition ${
+                          myList.includes(movie.id)
+                            ? 'bg-red-500 hover:bg-red-600'
+                            : 'bg-zinc-950/80 hover:bg-red-500'
+                        }`}
+                        title={myList.includes(movie.id) ? 'Quitar de mi lista' : 'Agregar a mi lista'}
                       >
-                        <X className="w-4 h-4" />
+                        {myList.includes(movie.id) ? (
+                          <Check className="w-4 h-4" />
+                        ) : (
+                          <Plus className="w-4 h-4" />
+                        )}
                       </button>
                     </div>
                     <div className="p-3">
@@ -1929,8 +1969,12 @@ export default function App() {
                         }}
                         className="bg-zinc-900 rounded-xl overflow-hidden border border-zinc-800 hover:border-red-500 transition cursor-pointer group"
                       >
-                        <div className="aspect-[2/3] bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center relative">
-                          <Play className="w-10 h-10 text-zinc-600 group-hover:text-red-500 transition" />
+                        <div className="aspect-[2/3] relative overflow-hidden">
+                          <img
+                            src={movie.image}
+                            alt={movie.title}
+                            className="w-full h-full object-cover"
+                          />
                         </div>
                         <div className="p-3">
                           <h4 className="font-semibold truncate mb-1">{movie.title}</h4>
