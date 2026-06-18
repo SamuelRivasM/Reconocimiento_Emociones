@@ -2,13 +2,22 @@ import express from "express";
 import cors from "cors";
 import bcrypt from "bcryptjs";
 import Database from "better-sqlite3";
+import path from "path";                 // <--- Agregado
+import { fileURLToPath } from "url";     // <--- Agregado
 
 const app = express();
 
-const db = new Database("./backend/database.db");
+// Configurar rutas absolutas para módulos ES
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Cambiamos la ruta fija por una ruta absoluta dinámica
+const db = new Database(path.join(__dirname, "database.db"));
 
 app.use(cors());
 app.use(express.json());
+
+// ... Todo el resto de tus endpoints (/register, /login, /movies, etc.) se quedan EXACTAMENTE IGUAL ...
 
 /* =====================
    REGISTRO

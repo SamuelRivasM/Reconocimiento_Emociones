@@ -61,14 +61,20 @@ async def analyze_emotion(request: ImageRequest):
         result = results[0] if isinstance(results, list) else results
         dominant_emotion = result["dominant_emotion"]
 
-        # 4. Obtener los IDs de géneros de TMDB correspondientes
+        # CONVERSIÓN CRÍTICA: Convertimos los tipos de numpy a floats puros de Python
+        cleaned_emotions = {
+            emo: float(val) for emo, val in result["emotion"].items()
+        }
+
+        # Obtener los IDs de géneros correspondientes
         suggested_genres = EMOTION_TO_GENRES.get(dominant_emotion, [10751, 35])
 
+        # Devolvemos el JSON con las emociones ya limpias y legibles
         return {
             "success": True,
             "dominant_emotion": dominant_emotion,
             "suggested_genres": suggested_genres,
-            "all_emotions": result["emotion"]
+            "all_emotions": cleaned_emotions  # <--- Usamos el diccionario corregido aquí
         }
 
     except Exception as e:
@@ -81,5 +87,5 @@ async def analyze_emotion(request: ImageRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    # Levantamos el servidor en el puerto 5000
-    uvicorn.run(app, host="127.0.0.1", port=5000)
+    # Cambia el host a "0.0.0.0"
+    uvicorn.run(app, host="0.0.0.0", port=5000)

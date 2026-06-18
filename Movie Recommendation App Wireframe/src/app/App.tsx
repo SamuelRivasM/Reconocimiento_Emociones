@@ -83,6 +83,7 @@ export default function App() {
   const [newReview, setNewReview] = useState({ rating: 5, comment: '' });
   const [showMovieForm, setShowMovieForm] = useState(false);
   const [movieForm, setMovieForm] = useState({ nombre: "", genero: "", anio: "", duracion: "", director: "", cast: "", descripcion: "", imagen: "" });
+  const [allEmotionsData, setAllEmotionsData] = useState<{ [key: string]: number } | null>(null);
 
   // Emotion Detection State
   const [showEmotionConsent, setShowEmotionConsent] = useState(false);
@@ -317,26 +318,27 @@ export default function App() {
   const emotionTypes: Emotion['type'][] = ['feliz', 'triste', 'sorprendido', 'asustado', 'enojado', 'neutral', 'emocionado'];
 
   const getEmotionIcon = (emotion: string) => {
-    switch (emotion) {
-      case 'feliz': return '😊';
-      case 'triste': return '😢';
-      case 'sorprendido': return '😲';
-      case 'asustado': return '😨';
-      case 'enojado': return '😠';
+    switch (emotion.toLowerCase()) {
+      case 'happy': case 'feliz': return '😊 :D Happy';
+      case 'sad': case 'triste': return '😢 D: Sad';
+      case 'surprise': case 'sorprendido': return '😲 :O Surprised';
+      case 'fear': case 'asustado': return '😨 D:> Fearful';
+      case 'angry': case 'enojado': return '😠 >:V Angry';
       case 'emocionado': return '🤩';
-      default: return '😐';
+      case 'disgust': return '🤮 UGH Disgusted';
+      default: return '😐 -_- Neutral';
     }
   };
 
   const getEmotionColor = (emotion: string) => {
-    switch (emotion) {
-      case 'feliz': return 'bg-yellow-500';
-      case 'triste': return 'bg-blue-500';
-      case 'sorprendido': return 'bg-purple-500';
-      case 'asustado': return 'bg-orange-500';
-      case 'enojado': return 'bg-red-600';
-      case 'emocionado': return 'bg-pink-500';
-      default: return 'bg-gray-500';
+    switch (emotion.toLowerCase()) {
+      case 'happy': case 'feliz': return 'bg-emerald-500';     // Verde brillante
+      case 'sad': case 'triste': return 'bg-blue-600';          // Azul
+      case 'angry': case 'enojado': return 'bg-red-600';        // Rojo
+      case 'fear': case 'asustado': return 'bg-purple-600';     // Púrpura
+      case 'surprise': case 'sorprendido': return 'bg-cyan-500';// Cyan
+      case 'disgust': return 'bg-green-800';                    // Verde oscuro
+      default: return 'bg-zinc-500';                            // Gris Neutral
     }
   };
 
@@ -533,6 +535,9 @@ export default function App() {
       const data = await response.json();
 
       if (data.success) {
+        setAllEmotionsData(data.all_emotions);
+        // Guardamos el desglose de todas las emociones que calculó Python para armar las barras HUD
+
         // Traducimos la emoción de Python al diccionario en español que usa el código de Jorge
         const translationMap: { [key: string]: string } = {
           happy: 'feliz',
@@ -541,17 +546,16 @@ export default function App() {
           surprise: 'sorprendido',
           neutral: 'neutral',
           fear: 'asustado',
-          disgust: 'triste' // Mapeo de escape por si acaso
+          disgust: 'triste'
         };
 
         const emotionInSpanish = translationMap[data.dominant_emotion] || 'neutral';
         setDetectedEmotion(emotionInSpanish);
 
         // 4. Filtrar las películas locales usando los IDs de género reales que devolvió Python
-        // Tu archivo maneja números para los IDs de género, los convertimos al string correspondiente de la BD
         const genreIdToNameMap: { [key: number]: string } = {
           35: 'Comedia',
-          16: 'Ciencia Ficción', // Adaptado a tus categorías
+          16: 'Ciencia Ficción',
           12: 'Acción',
           18: 'Drama',
           10749: 'Romance',
@@ -578,9 +582,10 @@ export default function App() {
         setDetectedEmotion('neutral');
         setPhotoRecommendations(allMovies.slice(0, 3));
       }
-    } catch (error) {
-      console.error("Error conectando con emotion_api.py:", error);
-      alert("Asegúrate de tener corriendo tu servidor de Python en el puerto 5000.");
+    } catch (error: any) {
+      console.error("Error conectando con la IA:", error);
+      // Esto nos va a decir exactamente qué le duele al navegador
+      alert("Error real devuelto: " + error.message);
       setDetectedEmotion('neutral');
     }
   };
@@ -2047,20 +2052,26 @@ export default function App() {
                         alt="Foto capturada"
                         className="w-full h-full object-cover"
                       />
-                    ) : cameraActive ? (
-                      <video
-                        ref={videoRef}
-                        autoPlay
-                        muted
-                        playsInline
-                        className="w-full h-full object-cover"
-                      />
                     ) : (
-                      <div className="flex flex-col items-center gap-4 text-zinc-600">
-                        <div className="w-24 h-24 rounded-full bg-zinc-800 flex items-center justify-center">
-                          <Camera className="w-12 h-12" />
-                        </div>
-                      </div>
+                      <>
+                        {/* El video se queda siempre montado para no perder la referencia de la webcam, pero lo ocultamos si no está activo */}
+                        <video
+                          ref={videoRef}
+                          autoPlay
+                          muted
+                          playsInline
+                          className={`w-full h-full object-cover ${cameraActive ? "block" : "hidden"}`}
+                        />
+
+                        {/* Si la cámara está apagada y no hay foto, mostramos el icono de marcador de posición */}
+                        {!cameraActive && (
+                          <div className="flex flex-col items-center gap-4 text-zinc-600">
+                            <div className="w-24 h-24 rounded-full bg-zinc-800 flex items-center justify-center">
+                              <Camera className="w-12 h-12" />
+                            </div>
+                          </div>
+                        )}
+                      </>
                     )}
 
                     {/* Scanning overlay when camera is active */}
@@ -2168,44 +2179,96 @@ export default function App() {
                 </div>
 
                 {/* Movie Recommendations based on emotion */}
-                {detectedEmotion && photoRecommendations.length > 0 && (
-                  <div className="bg-gradient-to-r from-red-900/20 to-red-800/10 border border-red-800/40 rounded-2xl p-6">
-                    <h3 className="text-lg font-bold mb-1 flex items-center gap-2">
-                      <Zap className="w-5 h-5 text-red-500" />
-                      Películas para tu estado de ánimo
-                    </h3>
-                    <p className="text-sm text-zinc-400 mb-4">
-                      Basado en tu emoción <span className="capitalize font-semibold text-white">{detectedEmotion}</span>
-                    </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      {photoRecommendations.map((movie) => (
-                        <div
-                          key={movie.id}
-                          onClick={() => {
-                            setSelectedMovie(movie);
-                          }}
-                          className="bg-zinc-900 rounded-xl overflow-hidden border border-zinc-800 hover:border-red-500 transition cursor-pointer group"
-                        >
-                          <div className="aspect-[2/3] relative overflow-hidden">
-                            <img
-                              src={movie.image}
-                              alt={movie.title}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                          <div className="p-3">
-                            <h4 className="font-semibold truncate mb-1">{movie.title}</h4>
-                            <div className="flex items-center justify-between text-xs text-zinc-400">
-                              <span>{movie.genre}</span>
-                              <div className="flex items-center gap-1">
-                                <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
-                                <span>{movie.rating}</span>
+                {detectedEmotion && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+
+                    {/* LADO IZQUIERDO: PELÍCULAS (Ocupa 2 de 3 columnas) */}
+                    <div className="md:col-span-2 space-y-6">
+                      {photoRecommendations.length > 0 && (
+                        <div className="bg-gradient-to-r from-red-950/20 to-red-800/10 border border-red-800/40 rounded-2xl p-6">
+                          <h3 className="text-lg font-bold mb-1 flex items-center gap-2 text-white">
+                            <Zap className="w-5 h-5 text-red-500" />
+                            Películas para tu estado de ánimo
+                          </h3>
+                          <p className="text-sm text-zinc-400 mb-4">
+                            Basado en tu emoción <span className="capitalize font-semibold text-white">{detectedEmotion}</span>
+                          </p>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            {photoRecommendations.map((movie) => (
+                              <div
+                                key={movie.id}
+                                onClick={() => setSelectedMovie(movie)}
+                                className="bg-zinc-900 rounded-xl overflow-hidden border border-zinc-800 hover:border-red-500 transition cursor-pointer group"
+                              >
+                                <div className="aspect-[2/3] relative overflow-hidden">
+                                  <img src={movie.image} alt={movie.title} className="w-full h-full object-cover" />
+                                </div>
+                                <div className="p-3">
+                                  <h4 className="font-semibold truncate mb-1 text-white text-sm">{movie.title}</h4>
+                                  <div className="flex items-center justify-between text-xs text-zinc-400">
+                                    <span>{movie.genre}</span>
+                                    <div className="flex items-center gap-1">
+                                      <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
+                                      <span>{movie.rating}</span>
+                                    </div>
+                                  </div>
+                                </div>
                               </div>
-                            </div>
+                            ))}
                           </div>
                         </div>
-                      ))}
+                      )}
                     </div>
+
+                    {/* LADO DERECHO: TU HUD DE PRUEBA.PY (Ocupa 1 columna) */}
+                    <div className="bg-zinc-900/90 border border-zinc-700/50 rounded-2xl p-5 flex flex-col shadow-2xl">
+                      <h3 className="text-xs font-bold text-red-500 tracking-[0.2em] mb-6 flex items-center gap-2 uppercase">
+                        <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                        Análisis de Datos Real
+                      </h3>
+
+                      {allEmotionsData ? (
+                        <div className="space-y-4">
+                          {Object.entries(allEmotionsData)
+                            .sort((a, b) => b[1] - a[1])
+                            .map(([emotion, percentage]) => (
+                              <div key={emotion} className="space-y-1.5">
+                                <div className="flex justify-between text Red-400 text-[10px] font-mono uppercase tracking-tight">
+                                  <span className="text-zinc-300 flex items-center gap-1">
+                                    {getEmotionIcon(emotion).split(' ')[0]}
+                                    {emotion}
+                                  </span>
+                                  <span className="text-red-400 font-bold">{percentage.toFixed(1)}%</span>
+                                </div>
+                                <div className="w-full bg-zinc-950 rounded-full h-1.5 overflow-hidden border border-white/5">
+                                  <div
+                                    className={`h-full rounded-full transition-all duration-1000 ease-out ${getEmotionColor(emotion)}`}
+                                    style={{ width: `${percentage}%` }}
+                                  />
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      ) : (
+                        <div className="flex-1 flex items-center justify-center text-center">
+                          <p className="text-[10px] text-zinc-500 font-mono leading-relaxed px-4">
+                            SISTEMA ESPERANDO<br />CAPTURA DE DATOS BIOMÉTRICOS...
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="border-t border-white/5 pt-4 mt-6 flex justify-between items-center">
+                        <div className="text-[9px] font-mono text-zinc-600">
+                          ID_SCAN: {Math.random().toString(36).substring(7).toUpperCase()}<br />
+                          SOURCE: DEEPFACE_V8
+                        </div>
+                        <div className="bg-red-500/10 text-red-500 text-[8px] font-bold px-2 py-1 rounded border border-red-500/20">
+                          LIVE_DATA
+                        </div>
+                      </div>
+                    </div>
+
                   </div>
                 )}
               </div>
