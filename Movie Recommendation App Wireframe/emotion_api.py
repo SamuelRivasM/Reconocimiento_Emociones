@@ -55,31 +55,38 @@ async def analyze_emotion(request: ImageRequest):
         cleaned_emotions = {emo: float(val) for emo, val in result["emotion"].items()}
 
         # 3. CONEXIÓN GLOBAL: Consultar a TMDB en tiempo real por internet
-        # Usamos un token de acceso público de TMDB para traer películas reales en español
         genre_ids = EMOTION_TO_GENRES.get(dominant_emotion, "35")
         tmdb_url = f"https://api.themoviedb.org/3/discover/movie?api_key=ca1483b8d4f40f09707b6bfda93979bb&with_genres={genre_ids}&language=es-MX&sort_by=popularity.desc"
         
         tmdb_response = requests.get(tmdb_url).json()
-        raw_movies = tmdb_response.get("results", [])[:3] # Tomamos las 3 mejores del mundo real
+        raw_movies = tmdb_response.get("results", [])
 
-        # Formateamos las películas globales para que React las entienda directo
+        # Formateamos y eliminamos repetidos usando un set de IDs dentro de Python
         global_recommendations = []
+        seen_ids = set()
+        
         for movie in raw_movies:
-            global_recommendations.append({
-                "id": movie.get("id"),
-                "title": movie.get("title"),
-                "description": movie.get("overview"),
-                "image": f"https://image.tmdb.org/t/p/w500{movie.get('poster_path')}", # Poster real de los servidores de TMDB
-                "rating": movie.get("vote_average"),
-                "year": movie.get("release_date", "2026")[:4],
-                "genre": "Recomendación Global"
-            })
+            movie_id = movie.get("id")
+            if movie_id and movie_id not in seen_ids:
+                seen_ids.add(movie_id)
+                global_recommendations.append({
+                    "id": movie_id,
+                    "title": movie.get("title"),
+                    "description": movie.get("overview"),
+                    "image": f"https://image.tmdb.org/t/p/w500{movie.get('poster_path')}" if movie.get('poster_path') else 'https://images.unsplash.com/photo-1440404653325-ab127d49abc1?q=80&w=400',
+                    "rating": movie.get("vote_average"),
+                    "year": movie.get("release_date", "2026")[:4],
+                    "genre": "Recomendación Global"
+                })
+                # Detenerse cuando tengamos 10 películas únicas listas para mandar a React
+                if len(global_recommendations) >= 10:
+                    break
 
         return {
             "success": True,
             "dominant_emotion": dominant_emotion,
             "all_emotions": cleaned_emotions,
-            "movies": global_recommendations  # <--- AQUÍ VAN LAS PELIS REALES DE INTERNET
+            "movies": global_recommendations
         }
 
     except Exception as e:

@@ -2,8 +2,8 @@ import express from "express";
 import cors from "cors";
 import bcrypt from "bcryptjs";
 import Database from "better-sqlite3";
-import path from "path";                 // <--- Agregado
-import { fileURLToPath } from "url";     // <--- Agregado
+import path from "path";
+import { fileURLToPath } from "url";
 
 const app = express();
 

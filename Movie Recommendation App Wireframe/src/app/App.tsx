@@ -63,6 +63,7 @@ export default function App() {
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [detectedEmotion, setDetectedEmotion] = useState<string | null>(null);
   const [photoRecommendations, setPhotoRecommendations] = useState<Movie[]>([]);
+  const [manualRecommendations, setManualRecommendations] = useState<Movie[]>([]);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -103,7 +104,6 @@ export default function App() {
     fetch("http://localhost:3001/movies")
       .then(res => res.json())
       .then(data => {
-
         const peliculas: Movie[] = data.map((m: any) => ({
           id: m.id,
           title: m.title,
@@ -117,10 +117,12 @@ export default function App() {
           image: m.image
         }));
 
-        console.log("PELICULAS:", peliculas);
+        // Elimina duplicados locales por título en el Home (por si acaso quedó residuo en la BD)
+        const uniqueLocalMovies = Array.from(new Map(peliculas.map((m: Movie) => [m.title.toLowerCase(), m])).values()) as Movie[];
 
-        setMovies(peliculas);
-        setRecommendations(peliculas.slice(0, 4));
+        console.log("PELICULAS CARGADAS:", uniqueLocalMovies);
+        setMovies(uniqueLocalMovies);
+        setRecommendations(uniqueLocalMovies.slice(0, 4));
       })
       .catch(err => console.error(err));
   }, []);
@@ -551,8 +553,24 @@ export default function App() {
         const emotionInSpanish = translationMap[data.dominant_emotion] || 'neutral';
         setDetectedEmotion(emotionInSpanish);
 
-        // C) CONEXIÓN GLOBAL: Guardamos las películas reales en las recomendaciones de la foto
-        setPhotoRecommendations(data.movies as any[]);
+        //  C) CONEXIÓN GLOBAL TMDB: Mapeamos asegurando que React entienda los datos de internet
+        if (data.movies && data.movies.length > 0) {
+          const parsedMovies = data.movies.map((m: any) => ({
+            id: m.id,
+            title: m.title || 'Sin Título',
+            genre: m.genre || 'Recomendación Global',
+            rating: m.rating || 0,
+            year: parseInt(m.year) || 2026,
+            duration: m.duration || '2h',
+            director: m.director || 'Desconocido',
+            cast: m.cast || [],
+            description: m.description || '',
+            image: m.image // Asegura la URL completa (https://image.tmdb.org/...) que armamos en Python
+          }));
+          setPhotoRecommendations(parsedMovies);
+        } else {
+          setPhotoRecommendations([]);
+        }
         // Aquí borramos la línea de setFilteredMovies para eliminar el error rojo.
 
       } else {
@@ -579,8 +597,28 @@ export default function App() {
       asustado: ['Terror', 'Suspenso'],
     };
     const genres = emotionGenreMap[emotion] || ['Todas'];
-    const recs = allMovies.filter(m => genres.includes(m.genre)).slice(0, 3);
-    setPhotoRecommendations(recs.length > 0 ? recs : allMovies.slice(0, 3));
+
+    // Filtramos del catálogo general (puedes usar allMovies o movies según cómo se llame tu estado local)
+    const recs = (allMovies || movies || []).filter(m => genres.includes(m.genre) || genres.includes('Todas')).slice(0, 5);
+    const finalRecs = recs.length > 0 ? recs : (allMovies || movies || []).slice(0, 5);
+
+    // Mapeador estricto para homologar las variables locales a formato inglés
+    const mappedManual = finalRecs.map((m: any) => ({
+      id: m.id,
+      title: m.title || m.nombre || 'Sin Título',
+      year: m.year || m.anio || 2026,
+      rating: m.rating || m.calificacion || 0,
+      image: m.image || m.imagen || 'https://images.unsplash.com/photo-1440404653325-ab127d49abc1?q=80&w=400',
+      description: m.description || m.descripcion || '',
+      genre: m.genre || m.genero || 'Local',
+      duration: m.duration || m.duracion || '2h',
+      director: m.director || 'Desconocido',
+      cast: m.cast || []
+    }));
+
+    // El truco está en poner "as Movie[]" aquí para eliminar el error rojo:
+    setManualRecommendations(mappedManual as Movie[]);
+    setPhotoRecommendations([]); // Limpiamos las de la foto para avisarle al render que estamos en modo manual
     setCapturedPhoto(null);
   };
 
@@ -2278,15 +2316,15 @@ export default function App() {
                                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
                                   <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span>
                                 </span>
-                                🍿 Estas películas se adecuan a tu estado de ánimo
+                                Estas películas se adecuan a tu estado de ánimo
                               </h2>
                               <p className="text-sm text-zinc-400 mt-2 font-sans">
-                                Nuestra Inteligencia Artificial detectó que tu humor actual es <span className="capitalize font-bold text-cyan-400 font-mono text-base">{detectedEmotion}</span>. Hemos consultado la cartelera global de TMDB en tiempo real para recomendarte las mejores opciones únicas para ti:
+                                Nuestra Inteligencia Artificial detectó que tu humor actual es <span className="capitalize font-bold text-cyan-400 font-mono text-base">{detectedEmotion}</span>. Hemos consultado la cartelera {photoRecommendations.length > 0 ? 'global de TMDB en tiempo real' : 'local de nuestra base de datos'} para recomendarte las mejores opciones únicas para ti:
                               </p>
                             </div>
 
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                              {cleanRecs.slice(0, 5).map((movie: any) => (
+                              {(photoRecommendations.length > 0 ? photoRecommendations : manualRecommendations).slice(0, 5).map((movie: any) => (
                                 <div
                                   key={movie.id}
                                   className="bg-zinc-900 rounded-xl overflow-hidden border border-zinc-800 hover:scale-105 transition duration-300 cursor-pointer group hover:border-cyan-500 shadow-lg"
@@ -2294,17 +2332,23 @@ export default function App() {
                                 >
                                   <div className="relative aspect-[2/3] overflow-hidden bg-zinc-950">
                                     <img
-                                      src={movie.image}
-                                      alt={movie.title}
+                                      src={movie.image || movie.imagen || 'https://images.unsplash.com/photo-1440404653325-ab127d49abc1?q=80&w=400'}
+                                      alt={movie.title || movie.nombre}
                                       className="w-full h-full object-cover group-hover:opacity-80 transition"
-                                      onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1440404653325-ab127d49abc1?q=80&w=400'; }}
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1440404653325-ab127d49abc1?q=80&w=400';
+                                      }}
                                     />
                                   </div>
                                   <div className="p-3 bg-zinc-900/50">
-                                    <h3 className="font-semibold truncate text-white text-sm group-hover:text-cyan-400 transition">{movie.title}</h3>
+                                    <h3 className="font-semibold truncate text-white text-sm group-hover:text-cyan-400 transition">
+                                      {movie.title || movie.nombre}
+                                    </h3>
                                     <div className="flex items-center justify-between mt-1 text-[11px] font-mono">
-                                      <span className="text-cyan-400">{movie.year}</span>
-                                      <span className="text-zinc-500 flex items-center gap-0.5">⭐ {movie.rating ? movie.rating.toFixed(1) : 'N/A'}</span>
+                                      <span className="text-cyan-400">{movie.year || movie.anio}</span>
+                                      <span className="text-zinc-500 flex items-center gap-0.5">
+                                        ⭐ {movie.rating ? Number(movie.rating).toFixed(1) : 'N/A'}
+                                      </span>
                                     </div>
                                   </div>
                                 </div>
