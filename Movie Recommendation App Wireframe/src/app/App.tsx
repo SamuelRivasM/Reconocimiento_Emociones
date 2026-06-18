@@ -512,20 +512,20 @@ export default function App() {
     const video = videoRef.current;
     const canvas = canvasRef.current;
 
-    // 1. Dibujar el frame de la cámara en el canvas oculto
+    // 1. Dibujar el frame actual de la webcam en el canvas oculto
     canvas.width = video.videoWidth || 640;
     canvas.height = video.videoHeight || 480;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    // 2. Convertir a formato Base64 para la API de Python
+    // 2. Convertir la captura a formato Base64 para enviarlo por red
     const dataUrl = canvas.toDataURL('image/jpeg');
     setCapturedPhoto(dataUrl);
     stopPhotoCamera();
 
     try {
-      // 3. Enviar la foto real a tu servidor FastAPI (Puerto 5000)
+      // 3. Petición HTTP POST a tu API de Python en el puerto 5000
       const response = await fetch("http://127.0.0.1:5000/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -535,10 +535,10 @@ export default function App() {
       const data = await response.json();
 
       if (data.success) {
+        // A) Guardamos los porcentajes para las barras del HUD lateral derecho
         setAllEmotionsData(data.all_emotions);
-        // Guardamos el desglose de todas las emociones que calculó Python para armar las barras HUD
 
-        // Traducimos la emoción de Python al diccionario en español que usa el código de Jorge
+        // B) Traducimos la emoción dominante para el título principal
         const translationMap: { [key: string]: string } = {
           happy: 'feliz',
           sad: 'triste',
@@ -546,45 +546,22 @@ export default function App() {
           surprise: 'sorprendido',
           neutral: 'neutral',
           fear: 'asustado',
-          disgust: 'triste'
+          disgust: 'desagrado'
         };
-
         const emotionInSpanish = translationMap[data.dominant_emotion] || 'neutral';
         setDetectedEmotion(emotionInSpanish);
 
-        // 4. Filtrar las películas locales usando los IDs de género reales que devolvió Python
-        const genreIdToNameMap: { [key: number]: string } = {
-          35: 'Comedia',
-          16: 'Ciencia Ficción',
-          12: 'Acción',
-          18: 'Drama',
-          10749: 'Romance',
-          28: 'Acción',
-          53: 'Suspenso',
-          27: 'Terror',
-          9648: 'Suspenso',
-          878: 'Ciencia Ficción',
-          14: 'Ciencia Ficción',
-          99: 'Drama',
-          80: 'Suspenso',
-          10751: 'Drama'
-        };
-
-        // Mapeamos los IDs numéricos sugeridos a nombres de texto que usa tu SQLite
-        const suggestedGenreNames = data.suggested_genres.map((id: number) => genreIdToNameMap[id] || 'Drama');
-
-        // Filtramos del total de películas cargadas aquellas que hagan match con las categorías
-        const recs = allMovies.filter(m => suggestedGenreNames.includes(m.genre)).slice(0, 3);
-        setPhotoRecommendations(recs.length > 0 ? recs : allMovies.slice(0, 3));
+        // C) CONEXIÓN GLOBAL: Guardamos las películas reales en las recomendaciones de la foto
+        setPhotoRecommendations(data.movies as any[]);
+        // Aquí borramos la línea de setFilteredMovies para eliminar el error rojo.
 
       } else {
-        console.error("Error devuelto por DeepFace:", data.error);
+        console.error("Error devuelto por la IA en Python:", data.error);
         setDetectedEmotion('neutral');
-        setPhotoRecommendations(allMovies.slice(0, 3));
+        setPhotoRecommendations([]);
       }
     } catch (error: any) {
-      console.error("Error conectando con la IA:", error);
-      // Esto nos va a decir exactamente qué le duele al navegador
+      console.error("Error de comunicación de red:", error);
       alert("Error real devuelto: " + error.message);
       setDetectedEmotion('neutral');
     }
