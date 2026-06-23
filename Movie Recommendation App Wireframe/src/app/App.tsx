@@ -139,7 +139,11 @@ export default function App() {
     ? recommendations
     : recommendations.filter(movie => movie.genre === selectedCategory);
 
-  const myListMovies = allMovies.filter(movie => myList.includes(movie.id));
+  const myListMovies = allMovies
+  .filter(movie => myList.includes(movie.id))
+  .filter((movie, index, self) => 
+    self.findIndex(m => m.id === movie.id) === index
+  ); {/*aquí cambié el duplicado de peliculas en mi lista*/}
 
   const toggleMyList = (movieId: number) => {
     setMyList(prev =>
@@ -1410,313 +1414,320 @@ export default function App() {
       )}
 
       {/* Movie Detail Modal */}
-      {selectedMovie && (
-        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4 overflow-auto">
-          <div className="bg-zinc-900 rounded-lg max-w-4xl w-full border border-zinc-800 my-8">
-            <div className="relative">
-              {/* Header with close button */}
+{selectedMovie && (
+  <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
+    <div className="bg-zinc-900 rounded-lg max-w-4xl w-full border border-zinc-800 max-h-[90vh] flex flex-col relative overflow-hidden">
+      
+      {/* Header with close button */}
+      <button
+        onClick={() => setSelectedMovie(null)}
+        className="absolute top-4 right-4 p-2 bg-zinc-950/80 hover:bg-red-500 text-white rounded-full transition z-50"
+      >
+        <X className="w-5 h-5" />
+      </button>
+
+      {/* CONTENEDOR CON SCROLL INTERNO (Aplica a todo el contenido restante) */}
+      <div className="overflow-y-auto flex-1 min-h-0">
+        
+        {/* Movie Banner / Watching Interface */}
+        <div className="aspect-video bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center rounded-t-lg relative overflow-hidden">
+          {!watchingMovie ? (
+            <>
+              <Play className="w-20 h-20 text-zinc-600" />
               <button
-                onClick={() => setSelectedMovie(null)}
-                className="absolute top-4 right-4 p-2 bg-zinc-950/80 hover:bg-red-500 rounded-full transition z-10"
+                onClick={() => toggleMyList(selectedMovie.id)}
+                className={`absolute top-4 left-4 px-4 py-2 rounded-lg transition flex items-center gap-2 ${
+                  myList.includes(selectedMovie.id)
+                    ? 'bg-red-500 hover:bg-red-600'
+                    : 'bg-zinc-950/80 hover:bg-red-500'
+                }`}
               >
-                <X className="w-5 h-5" />
-              </button>
-
-              {/* Movie Banner / Watching Interface */}
-              <div className="aspect-video bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center rounded-t-lg relative overflow-hidden">
-                {!watchingMovie ? (
+                {myList.includes(selectedMovie.id) ? (
                   <>
-                    <Play className="w-20 h-20 text-zinc-600" />
-                    <button
-                      onClick={() => toggleMyList(selectedMovie.id)}
-                      className={`absolute top-4 left-4 px-4 py-2 rounded-lg transition flex items-center gap-2 ${myList.includes(selectedMovie.id)
-                        ? 'bg-red-500 hover:bg-red-600'
-                        : 'bg-zinc-950/80 hover:bg-red-500'
-                        }`}
-                    >
-                      {myList.includes(selectedMovie.id) ? (
-                        <>
-                          <Check className="w-4 h-4" />
-                          En Mi Lista
-                        </>
-                      ) : (
-                        <>
-                          <Plus className="w-4 h-4" />
-                          Agregar a Mi Lista
-                        </>
-                      )}
-                    </button>
-
-                    {/* Watch Buttons */}
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-3">
-                      <button
-                        onClick={() => {
-                          setWatchingMovie(true);
-                          setPlaybackProgress(0);
-                        }}
-                        className="px-6 py-3 bg-white text-black rounded-lg hover:bg-zinc-200 transition font-semibold flex items-center gap-2"
-                      >
-                        <Play className="w-5 h-5" />
-                        Reproducir
-                      </button>
-                      {userProfile?.emotionAnalysisEnabled && (
-                        <button
-                          onClick={() => startEmotionDetection(selectedMovie)}
-                          className="px-6 py-3 bg-red-500 rounded-lg hover:bg-red-600 transition font-semibold flex items-center gap-2"
-                        >
-                          <Camera className="w-5 h-5" />
-                          Ver con Análisis Emocional
-                        </button>
-                      )}
-                    </div>
+                    <Check className="w-4 h-4" />
+                    En Mi Lista
                   </>
                 ) : (
                   <>
-                    {/* Simulated Video Player */}
-                    <div className="absolute inset-0 bg-black">
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <p className="text-2xl text-zinc-600">[ Reproduciendo película... ]</p>
+                    <Plus className="w-4 h-4" />
+                    Agregar a Mi Lista
+                  </>
+                )}
+              </button>
+
+              {/* Watch Buttons */}
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-3">
+                <button
+                  onClick={() => {
+                    setWatchingMovie(true);
+                    setPlaybackProgress(0);
+                  }}
+                  className="px-6 py-3 bg-white text-black rounded-lg hover:bg-zinc-200 transition font-semibold flex items-center gap-2"
+                >
+                  <Play className="w-5 h-5" />
+                  Reproducir
+                </button>
+                {userProfile?.emotionAnalysisEnabled && (
+                  <button
+                    onClick={() => startEmotionDetection(selectedMovie)}
+                    className="px-6 py-3 bg-red-500 rounded-lg hover:bg-red-600 transition font-semibold flex items-center gap-2"
+                  >
+                    <Camera className="w-5 h-5" />
+                    Ver con Análisis Emocional
+                  </button>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Simulated Video Player */}
+              <div className="absolute inset-0 bg-black">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <p className="text-2xl text-zinc-600">[ Reproduciendo película... ]</p>
+                </div>
+
+                {/* Emotion Detection Overlay */}
+                {emotionAnalysisActive && (
+                  <>
+                    {/* Camera Indicator */}
+                    <div className="absolute top-4 right-4 bg-red-500 rounded-lg px-3 py-2 flex items-center gap-2 animate-pulse">
+                      <Camera className="w-4 h-4" />
+                      <span className="text-sm font-semibold">Análisis Activo</span>
+                    </div>
+
+                    {/* Current Emotion Display */}
+                    {currentEmotion && (
+                      <div className="absolute top-4 left-4 bg-zinc-950/90 rounded-lg px-4 py-3 border border-zinc-700">
+                        <div className="flex items-center gap-3">
+                          <span className="text-3xl">{getEmotionIcon(currentEmotion.type)}</span>
+                          <div>
+                            <p className="text-xs text-zinc-400">Emoción detectada</p>
+                            <p className="font-semibold capitalize">{currentEmotion.type}</p>
+                          </div>
+                        </div>
                       </div>
+                    )}
 
-                      {/* Emotion Detection Overlay */}
-                      {emotionAnalysisActive && (
-                        <>
-                          {/* Camera Indicator */}
-                          <div className="absolute top-4 right-4 bg-red-500 rounded-lg px-3 py-2 flex items-center gap-2 animate-pulse">
-                            <Camera className="w-4 h-4" />
-                            <span className="text-sm font-semibold">Análisis Activo</span>
-                          </div>
-
-                          {/* Current Emotion Display */}
-                          {currentEmotion && (
-                            <div className="absolute top-4 left-4 bg-zinc-950/90 rounded-lg px-4 py-3 border border-zinc-700">
-                              <div className="flex items-center gap-3">
-                                <span className="text-3xl">{getEmotionIcon(currentEmotion.type)}</span>
-                                <div>
-                                  <p className="text-xs text-zinc-400">Emoción detectada</p>
-                                  <p className="font-semibold capitalize">{currentEmotion.type}</p>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Mini Camera Preview (Simulated) */}
-                          <div className="absolute bottom-20 right-4 w-32 h-24 bg-zinc-900 rounded-lg border-2 border-red-500 overflow-hidden">
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <User className="w-12 h-12 text-zinc-600" />
-                            </div>
-                            <div className="absolute top-1 right-1">
-                              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                            </div>
-                          </div>
-                        </>
-                      )}
-
-                      {/* Playback Controls */}
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-4">
-                        {/* Progress Bar with Emotional Timeline */}
-                        <div className="mb-3">
-                          <div className="relative">
-                            {/* Emotion Markers */}
-                            {emotionAnalysisActive && activeSession && (
-                              <div className="absolute -top-6 left-0 right-0 h-4 flex items-center">
-                                {activeSession.emotions.map((emotion, index) => (
-                                  <div
-                                    key={index}
-                                    className="absolute w-2 h-2 rounded-full"
-                                    style={{
-                                      left: `${(emotion.timestamp / 180) * 100}%`,
-                                      backgroundColor: getEmotionColor(emotion.type).replace('bg-', '#')
-                                    }}
-                                    title={emotion.type}
-                                  >
-                                    <span className="absolute -top-5 text-xs">
-                                      {getEmotionIcon(emotion.type)}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-
-                            {/* Progress Bar */}
-                            <div className="w-full bg-zinc-700 rounded-full h-1 cursor-pointer">
-                              <div
-                                className="bg-red-500 h-1 rounded-full"
-                                style={{ width: `${(playbackProgress / 180) * 100}%` }}
-                              />
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-between mt-2 text-xs text-zinc-400">
-                            <span>{Math.floor(playbackProgress / 60)}:{(playbackProgress % 60).toString().padStart(2, '0')}</span>
-                            <span>3:00</span>
-                          </div>
-                        </div>
-
-                        {/* Control Buttons */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <button className="hover:text-white transition">
-                              <Play className="w-6 h-6" />
-                            </button>
-                            {emotionAnalysisActive ? (
-                              <button
-                                onClick={stopEmotionDetection}
-                                className="px-3 py-1 bg-red-500 rounded text-sm flex items-center gap-2 hover:bg-red-600 transition"
-                              >
-                                <CameraOff className="w-4 h-4" />
-                                Detener Análisis
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => startEmotionDetection(selectedMovie)}
-                                className="px-3 py-1 bg-zinc-700 rounded text-sm flex items-center gap-2 hover:bg-zinc-600 transition"
-                              >
-                                <Camera className="w-4 h-4" />
-                                Activar Análisis
-                              </button>
-                            )}
-                          </div>
-
-                          <button
-                            onClick={() => {
-                              setWatchingMovie(false);
-                              if (emotionAnalysisActive) {
-                                stopEmotionDetection();
-                              }
-                            }}
-                            className="px-4 py-2 bg-zinc-800 rounded hover:bg-zinc-700 transition text-sm"
-                          >
-                            Salir
-                          </button>
-                        </div>
+                    {/* Mini Camera Preview (Simulated) */}
+                    <div className="absolute bottom-20 right-4 w-32 h-24 bg-zinc-900 rounded-lg border-2 border-red-500 overflow-hidden">
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <User className="w-12 h-12 text-zinc-600" />
+                      </div>
+                      <div className="absolute top-1 right-1">
+                        <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                       </div>
                     </div>
                   </>
                 )}
-              </div>
 
-              {/* Movie Info */}
-              <div className="p-6">
-                <h2 className="text-3xl font-bold mb-2">{selectedMovie.title}</h2>
-                <div className="flex flex-wrap items-center gap-4 text-zinc-400 mb-4">
-                  <div className="flex items-center gap-1">
-                    <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
-                    <span>{selectedMovie.rating}</span>
-                    <span className="text-xs">({getMovieReviews(selectedMovie.id).length} reseñas)</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Calendar className="w-4 h-4" />
-                    <span>{selectedMovie.year}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Clock className="w-4 h-4" />
-                    <span>{selectedMovie.duration}</span>
-                  </div>
-                  <span className="px-3 py-1 bg-zinc-800 rounded-full text-sm">{selectedMovie.genre}</span>
-                </div>
+                {/* Playback Controls */}
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-4">
+                  {/* Progress Bar with Emotional Timeline */}
+                  <div className="mb-3">
+                    <div className="relative">
+                      {/* Emotion Markers */}
+                      {emotionAnalysisActive && activeSession && (
+                        <div className="absolute -top-6 left-0 right-0 h-4 flex items-center">
+                          {activeSession.emotions.map((emotion, index) => (
+                            <div
+                              key={index}
+                              className="absolute w-2 h-2 rounded-full"
+                              style={{
+                                left: `${(emotion.timestamp / 180) * 100}%`,
+                                backgroundColor: getEmotionColor(emotion.type).replace('bg-', '#')
+                              }}
+                              title={emotion.type}
+                            >
+                              <span className="absolute -top-5 text-xs">
+                                {getEmotionIcon(emotion.type)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
 
-                <p className="text-zinc-300 mb-4">{selectedMovie.description}</p>
-
-                <div className="mb-4">
-                  <p className="text-sm text-zinc-400 mb-1">
-                    <strong>Director:</strong> {selectedMovie.director}
-                  </p>
-                  <p className="text-sm text-zinc-400">
-                    <strong>Reparto:</strong> {selectedMovie.cast.join(', ')}
-                  </p>
-                </div>
-
-                {/* Reviews Section */}
-                <div className="border-t border-zinc-800 pt-4 mt-6">
-                  <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                    <Users className="w-5 h-5" />
-                    Reseñas ({getMovieReviews(selectedMovie.id).length})
-                  </h3>
-
-                  {/* Add Review Form */}
-                  <div className="bg-zinc-800 rounded-lg p-4 mb-4">
-                    <h4 className="font-semibold mb-3">Escribe tu reseña</h4>
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="text-sm text-zinc-400">Tu calificación:</span>
-                      <div className="flex gap-1">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <button
-                            key={star}
-                            onClick={() => setNewReview({ ...newReview, rating: star })}
-                            className="transition hover:scale-110"
-                          >
-                            <Star
-                              className={`w-5 h-5 ${star <= newReview.rating
-                                ? 'fill-yellow-500 text-yellow-500'
-                                : 'text-zinc-600'
-                                }`}
-                            />
-                          </button>
-                        ))}
+                      {/* Progress Bar */}
+                      <div className="w-full bg-zinc-700 rounded-full h-1 cursor-pointer">
+                        <div
+                          className="bg-red-500 h-1 rounded-full"
+                          style={{ width: `${(playbackProgress / 180) * 100}%` }}
+                        />
                       </div>
-                      <span className="text-sm font-semibold">{newReview.rating}/5</span>
                     </div>
-                    <textarea
-                      value={newReview.comment}
-                      onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
-                      placeholder="Comparte tu opinión sobre esta película..."
-                      className="w-full px-4 py-2 bg-zinc-900 border border-zinc-700 rounded-lg focus:outline-none focus:border-red-500 mb-3 min-h-[100px]"
-                    />
+
+                    <div className="flex items-center justify-between mt-2 text-xs text-zinc-400">
+                      <span>{Math.floor(playbackProgress / 60)}:{(playbackProgress % 60).toString().padStart(2, '0')}</span>
+                      <span>3:00</span>
+                    </div>
+                  </div>
+
+                  {/* Control Buttons */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <button className="hover:text-white transition">
+                        <Play className="w-6 h-6" />
+                      </button>
+                      {emotionAnalysisActive ? (
+                        <button
+                          onClick={stopEmotionDetection}
+                          className="px-3 py-1 bg-red-500 rounded text-sm flex items-center gap-2 hover:bg-red-600 transition"
+                        >
+                          <CameraOff className="w-4 h-4" />
+                          Detener Análisis
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => startEmotionDetection(selectedMovie)}
+                          className="px-3 py-1 bg-zinc-700 rounded text-sm flex items-center gap-2 hover:bg-zinc-600 transition"
+                        >
+                          <Camera className="w-4 h-4" />
+                          Activar Análisis
+                        </button>
+                      )}
+                    </div>
+
                     <button
-                      onClick={handleAddReview}
-                      className="px-4 py-2 bg-red-500 rounded-lg hover:bg-red-600 transition flex items-center gap-2"
-                      disabled={!newReview.comment.trim()}
+                      onClick={() => {
+                        setWatchingMovie(false);
+                        if (emotionAnalysisActive) {
+                          stopEmotionDetection();
+                        }
+                      }}
+                      className="px-4 py-2 bg-zinc-800 rounded hover:bg-zinc-700 transition text-sm"
                     >
-                      <Send className="w-4 h-4" />
-                      Publicar Reseña
+                      Salir
                     </button>
                   </div>
-
-                  {/* Reviews List */}
-                  <div className="space-y-4 max-h-96 overflow-y-auto">
-                    {getMovieReviews(selectedMovie.id).length === 0 ? (
-                      <p className="text-zinc-400 text-center py-8">
-                        No hay reseñas aún. ¡Sé el primero en compartir tu opinión!
-                      </p>
-                    ) : (
-                      getMovieReviews(selectedMovie.id).map((review) => (
-                        <div key={review.id} className="bg-zinc-800 rounded-lg p-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
-                                <span className="text-sm font-bold">
-                                  {review.userName.charAt(0).toUpperCase()}
-                                </span>
-                              </div>
-                              <span className="font-semibold">{review.userName}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <div className="flex">
-                                {[...Array(5)].map((_, i) => (
-                                  <Star
-                                    key={i}
-                                    className={`w-4 h-4 ${i < review.rating
-                                      ? 'fill-yellow-500 text-yellow-500'
-                                      : 'text-zinc-600'
-                                      }`}
-                                  />
-                                ))}
-                              </div>
-                              <span className="text-xs text-zinc-400">{review.date}</span>
-                            </div>
-                          </div>
-                          <p className="text-zinc-300">{review.comment}</p>
-                        </div>
-                      ))
-                    )}
-                  </div>
                 </div>
               </div>
+            </>
+          )}
+        </div>
+
+        {/* Movie Info */}
+        <div className="p-6">
+          <h2 className="text-3xl font-bold mb-2">{selectedMovie.title}</h2>
+          <div className="flex flex-wrap items-center gap-4 text-zinc-400 mb-4">
+            <div className="flex items-center gap-1">
+              <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+              <span>{selectedMovie.rating}</span>
+              <span className="text-xs">({getMovieReviews(selectedMovie.id).length} reseñas)</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Calendar className="w-4 h-4" />
+              <span>{selectedMovie.year}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Clock className="w-4 h-4" />
+              <span>{selectedMovie.duration}</span>
+            </div>
+            <span className="px-3 py-1 bg-zinc-800 rounded-full text-sm">{selectedMovie.genre}</span>
+          </div>
+
+          <p className="text-zinc-300 mb-4">{selectedMovie.description}</p>
+
+          <div className="mb-4">
+            <p className="text-sm text-zinc-400 mb-1">
+              <strong>Director:</strong> {selectedMovie.director}
+            </p>
+            <p className="text-sm text-zinc-400">
+              <strong>Reparto:</strong> {selectedMovie.cast.join(', ')}
+            </p>
+          </div>
+
+          {/* Reviews Section */}
+          <div className="border-t border-zinc-800 pt-4 mt-6">
+            <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              Reseñas ({getMovieReviews(selectedMovie.id).length})
+            </h3>
+
+            {/* Add Review Form */}
+            <div className="bg-zinc-800 rounded-lg p-4 mb-4">
+              <h4 className="font-semibold mb-3">Escribe tu reseña</h4>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-sm text-zinc-400">Tu calificación:</span>
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      onClick={() => setNewReview({ ...newReview, rating: star })}
+                      className="transition hover:scale-110"
+                    >
+                      <Star
+                        className={`w-5 h-5 ${
+                          star <= newReview.rating
+                            ? 'fill-yellow-500 text-yellow-500'
+                            : 'text-zinc-600'
+                        }`}
+                      />
+                    </button>
+                  ))}
+                </div>
+                <span className="text-sm font-semibold">{newReview.rating}/5</span>
+              </div>
+              <textarea
+                value={newReview.comment}
+                onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
+                placeholder="Comparte tu opinión sobre esta película..."
+                className="w-full px-4 py-2 bg-zinc-900 border border-zinc-700 rounded-lg focus:outline-none focus:border-red-500 mb-3 min-h-[100px]"
+              />
+              <button
+                onClick={handleAddReview}
+                className="px-4 py-2 bg-red-500 rounded-lg hover:bg-red-600 transition flex items-center gap-2"
+                disabled={!newReview.comment.trim()}
+              >
+                <Send className="w-4 h-4" />
+                Publicar Reseña
+              </button>
+            </div>
+
+            {/* Reviews List */}
+            <div className="space-y-4 max-h-96 overflow-y-auto">
+              {getMovieReviews(selectedMovie.id).length === 0 ? (
+                <p className="text-zinc-400 text-center py-8">
+                  No hay reseñas aún. ¡Sé el primero en compartir tu opinión!
+                </p>
+              ) : (
+                getMovieReviews(selectedMovie.id).map((review) => (
+                  <div key={review.id} className="bg-zinc-800 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
+                          <span className="text-sm font-bold">
+                            {review.userName.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <span className="font-semibold">{review.userName}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              className={`w-4 h-4 ${
+                                i < review.rating
+                                  ? 'fill-yellow-500 text-yellow-500'
+                                  : 'text-zinc-600'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-xs text-zinc-400">{review.date}</span>
+                      </div>
+                    </div>
+                    <p className="text-zinc-300">{review.comment}</p>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
-      )}
+
+      </div> {/* AQUÍ CIERRA EL SCROLL INTERNO */}
+    </div>
+  </div>
+)}
 
       {/* Header */}
       <header className="border-b border-zinc-800 sticky top-0 bg-zinc-950 z-10">
