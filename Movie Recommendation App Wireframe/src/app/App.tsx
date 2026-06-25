@@ -1,5 +1,7 @@
 import { Search, Star, Play, Plus, X, Check, User, LogOut, Calendar, Clock, Users, Send, Edit2, Lock, Trash2, Mail, Camera, CameraOff, Smile, Frown, Meh, Angry, AlertCircle, Zap, Eye, Shield, BarChart3, TrendingUp } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
+import AdminDashboard from './components/admin/AdminDashboard';
+
 
 interface Movie {
   id: number;
@@ -55,7 +57,7 @@ interface EmotionalSummary {
 }
 
 export default function App() {
-  const [appState, setAppState] = useState<'landing' | 'auth-login' | 'auth-register' | 'app'>('landing');
+  const [appState, setAppState] = useState<'landing' | 'auth-login' | 'auth-register' | 'app' | 'admin'>('landing');
   const [selectedCategory, setSelectedCategory] = useState('Todas');
   const [currentView, setCurrentView] = useState<'explore' | 'mylist' | 'profile' | 'photo'>('explore');
   const [photoStep, setPhotoStep] = useState<'intro' | 'capture'>('intro');
@@ -100,6 +102,9 @@ export default function App() {
   const sessionStartTimeRef = useRef<number>(0);
   const [movies, setMovies] = useState<Movie[]>([]);
   const [recommendations, setRecommendations] = useState<Movie[]>([]);
+
+
+  // 🎬 1. CARGAR PELÍCULAS DESDE EL BACKEND
   useEffect(() => {
     fetch("http://localhost:3001/movies")
       .then(res => res.json())
@@ -117,7 +122,6 @@ export default function App() {
           image: m.image
         }));
 
-        // Elimina duplicados locales por título en el Home (por si acaso quedó residuo en la BD)
         const uniqueLocalMovies = Array.from(new Map(peliculas.map((m: Movie) => [m.title.toLowerCase(), m])).values()) as Movie[];
 
         console.log("PELICULAS CARGADAS:", uniqueLocalMovies);
@@ -126,6 +130,41 @@ export default function App() {
       })
       .catch(err => console.error(err));
   }, []);
+
+  // 🛡️ 2. CONTROL DE PERSISTENCIA INTELIGENTE (FIX F5 PARA EL ADMIN Y USUARIO)
+  useEffect(() => {
+    const usuarioGuardado = localStorage.getItem("usuario");
+
+    if (usuarioGuardado) {
+      try {
+        const profile = JSON.parse(usuarioGuardado);
+
+        setUser(profile.name);
+        setUserProfile(profile);
+
+        setEditProfileForm({
+          name: profile.name,
+          email: profile.email
+        });
+
+        // 🔀 Aquí decidimos a dónde va según su correo real
+        if (profile.email === "admin@movieflix.com") {
+          setAppState("admin"); // ¡Se queda bloqueado en el panel elegante!
+        } else {
+          setAppState("app");   // Va al catálogo si es usuario común
+        }
+
+      } catch (error) {
+        console.error("Error al procesar la sesión guardada:", error);
+      }
+    }
+  }, []);
+  
+
+
+
+
+
   const allMovies = [...movies, ...recommendations];
 
   const categories = ['Todas', 'Acción', 'Drama', 'Ciencia Ficción', 'Romance', 'Suspenso', 'Terror'];
@@ -155,7 +194,6 @@ export default function App() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-
     try {
 
       const res = await fetch("http://localhost:3001/login", {
@@ -168,7 +206,6 @@ export default function App() {
           password: loginForm.password
         })
       });
-
       const data = await res.json();
 
       if (!data.success) {
@@ -183,7 +220,6 @@ export default function App() {
         joinDate: new Date().toISOString().split("T")[0],
         emotionAnalysisEnabled: false
       };
-
       setUser(profile.name);
       setUserProfile(profile);
 
@@ -191,25 +227,27 @@ export default function App() {
         "usuario",
         JSON.stringify(profile)
       );
-
       setEditProfileForm({
         name: profile.name,
         email: profile.email
       });
-
       setLoginForm({
         email: "",
         password: ""
       });
 
-      setAppState("app");
+      // 🔀 REDIRECCIÓN INTELIGENTE POR ROL DESDE LA BD
+      if (data.usuario.rol === "admin") {
+        setAppState("admin"); // 📊 Si es admin, directo al módulo de administración
+      } else {
+        setAppState("app");   // 🎬 Si es usuario normal, al catálogo principal
+      }
 
     } catch (error) {
       console.error(error);
       alert("Error al iniciar sesión");
     }
   };
-
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -723,6 +761,100 @@ export default function App() {
     }
   };
 
+
+  // 🌟 PANEL DE ADMINISTRACIÓN (VISTA MEJORADA)
+  // ==========================================
+  if (appState === 'admin') {
+    return (
+      <div className="min-h-screen bg-zinc-950 text-white font-sans antialiased overflow-auto">
+        
+        {/* NAVBAR DEL ADMINISTRADOR */}
+        <nav className="sticky top-0 z-50 bg-zinc-900/80 backdrop-blur-md border-b border-zinc-800/50 px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-8">
+            {/* LOGO MOVIEFLIX */}
+            <div className="text-2xl font-black tracking-tighter text-red-650 select-none">
+              MOVIE<span className="text-white font-light">FLIX</span>
+              <span className="ml-2 text-xs bg-red-600/15 text-red-400 font-bold px-2 py-0.5 rounded border border-red-500/30 uppercase tracking-widest">
+                Admin
+              </span>
+            </div>
+          </div>
+
+          {/* ACCIONES DEL NAVBAR (BOTÓN SALIR) */}
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => {
+                // Limpiamos la sesión del admin al salir si lo deseas, o solo vuelve a la landing
+                setUser(null);
+                setUserProfile(null);
+                localStorage.removeItem("usuario");
+                setAppState('landing');
+              }}
+              className="flex items-center gap-2 text-sm bg-zinc-800 hover:bg-red-600 hover:text-white text-zinc-300 px-4 py-2 rounded-lg font-medium transition-all border border-zinc-700/50"
+            >
+              <LogOut size={16} />
+              Cerrar Sesión
+            </button>
+          </div>
+        </nav>
+
+        {/* CUERPO PRINCIPAL DEL PANEL */}
+        <div className="max-w-7xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
+          
+          {/* COLUMNA IZQUIERDA: APARTADO DE DATOS DEL ADMIN */}
+          <aside className="lg:col-span-1">
+            <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-5 sticky top-24 backdrop-blur-sm">
+              <div className="flex flex-col items-center text-center pb-5 border-b border-zinc-800">
+                {/* Avatar con inicial */}
+                <div className="w-16 h-16 bg-gradient-to-tr from-red-600 to-amber-500 rounded-full flex items-center justify-center text-xl font-black shadow-lg shadow-red-950/40 mb-3 text-white">
+                  A
+                </div>
+                <h3 className="font-bold text-lg text-zinc-100">Administrador</h3>
+                <span className="text-xs text-red-400 font-semibold tracking-wider uppercase mt-1">
+                  Soporte TI / Root
+                </span>
+              </div>
+
+              {/* Datos detallados */}
+              <div className="mt-5 space-y-4 text-sm">
+                <div>
+                  <label className="text-xs text-zinc-500 block uppercase font-bold tracking-wider">Correo Electrónico</label>
+                  <p className="text-zinc-200 font-medium break-all mt-0.5">admin@movieflix.com</p>
+                </div>
+                <div>
+                  <label className="text-xs text-zinc-500 block uppercase font-bold tracking-wider">Nivel de Acceso</label>
+                  <div className="flex items-center gap-1.5 text-amber-400 font-semibold mt-0.5">
+                    <Shield size={14} />
+                    Control Total
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs text-zinc-500 block uppercase font-bold tracking-wider">Base de Datos</label>
+                  <p className="text-zinc-300 font-mono text-xs mt-1 bg-zinc-950 px-2 py-1.5 rounded border border-zinc-800/60">
+                    SQLite (database.db)
+                  </p>
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          {/* COLUMNA DERECHA: DASHBOARD ORIGINAL */}
+          <main className="lg:col-span-3 bg-zinc-900/30 border border-zinc-800/40 rounded-xl p-6 min-h-[60vh]">
+            <div className="mb-6 pb-4 border-b border-zinc-800/60">
+              <h1 className="text-2xl font-bold tracking-tight text-zinc-100">Panel de Control General</h1>
+              <p className="text-sm text-zinc-400 mt-1">Métricas en tiempo real del sistema de recomendación.</p>
+            </div>
+            
+            {/* Aquí se mantiene tu componente intacto con las dos estadísticas */}
+            <AdminDashboard />
+          </main>
+
+        </div>
+      </div>
+    );
+  }
+
+  
   // Landing Page
   if (appState === 'landing') {
     return (

@@ -2,21 +2,14 @@ import Database from "better-sqlite3";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
+import bcrypt from 'bcrypt';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const dbPath = path.join(__dirname, "database.db");
 
-// Forzar limpieza borrando el archivo de base de datos anterior si existe para evitar duplicados residuales
-if (fs.existsSync(dbPath)) {
-    try {
-        fs.unlinkSync(dbPath);
-        console.log("Base de datos antigua eliminada para limpieza total.");
-    } catch (err) {
-        console.log("No se pudo eliminar el archivo físico, limpiando tablas internamente.");
-    }
-}
+
 
 const db = new Database(dbPath);
 
@@ -25,7 +18,8 @@ CREATE TABLE IF NOT EXISTS usuarios (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nombre_usuario TEXT UNIQUE NOT NULL,
     correo TEXT UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL
+    password_hash TEXT NOT NULL,
+    rol TEXT DEFAULT 'user' 
 );
 
 CREATE TABLE IF NOT EXISTS peliculas (
@@ -75,6 +69,36 @@ const peliculasSemilla = [
     ["Orgullo y Prejuicio", "Romance", 2005, "2h 09min", "Joe Wright", "Keira Knightley, Matthew Macfadyen", "Las complicaciones del amor y las clases sociales en la Inglaterra del siglo XIX.", "https://www.themoviedb.org/t/p/w600_and_h900_face/aTqeJJSt4cLP3TzWlN75OMbNbN6.jpg"],
     ["Whiplash", "Drama", 2014, "1h 46min", "Damien Chazelle", "Miles Teller, J.K. Simmons", "Un joven baterista de jazz es llevado al límite por un instructor despiadado.", "https://www.themoviedb.org/t/p/w600_and_h900_face/uy36CPy5ARuC8qrH8Esg2ndFyJ5.jpg"]
 ];
+
+// 🔐 Insertar Administrador por defecto si no existe
+const adminCorreo = "admin@movieflix.com";
+const adminExiste = db.prepare("SELECT * FROM usuarios WHERE correo = ?").get(adminCorreo);
+
+if (!adminExiste) {
+    const saltRounds = 10;
+    const hash = bcrypt.hashSync("admin123", saltRounds); // Encriptamos su clave 'admin123'
+    
+    db.prepare(`
+        INSERT INTO usuarios (nombre_usuario, correo, password_hash, rol)
+        VALUES (?, ?, ?, ?)
+    `).run("Administrador", adminCorreo, hash, "admin"); // 👈 Aquí se guarda como 'admin'
+    
+    console.log("🚀 Usuario Administrador creado con éxito en la base de datos.");
+}
+
+
+
+// Forzar limpieza borrando el archivo de base de datos anterior si existe para evitar duplicados residuales
+if (fs.existsSync(dbPath)) {
+    try {
+        fs.unlinkSync(dbPath);
+        console.log("Base de datos antigua eliminada para limpieza total.");
+    } catch (err) {
+        console.log("No se pudo eliminar el archivo físico, limpiando tablas internamente.");
+    }
+}
+
+
 
 const insertMovie = db.prepare(`
 INSERT INTO peliculas (nombre, genero, anio, duracion, director, cast, descripcion, imagen)
