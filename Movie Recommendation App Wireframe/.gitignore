@@ -1,0 +1,18 @@
+node_modules/
+**/node_modules/
+.vite/
+backend/database.db
+backend/database.sqlite
+
+# Ignorar las librerías pesadas (¡SÚPER IMPORTANTE!)
+node_modules/
+dist/
+.env
+
+# Ignorar archivos del sistema
+.DS_Store
+Thumbs.db
+
+# Opcional: Ignorar las bases de datos locales para que no choquen entre ustedes
+backend/database.sqlite
+backend/database.db
